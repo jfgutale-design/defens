@@ -2,6 +2,8 @@
 export type NoticeType = 'council_pcn' | 'private_parking_charge' | 'unknown';
 export type CaseStage = 'EARLY' | 'LATE' | 'RED_FLAG';
 
+export type ContraventionCategory = 'PARKING' | 'TURNING' | 'BOX_JUNCTION' | 'BUS_LANE' | 'OTHER';
+
 export interface PCNData {
   pcnNumber: string;
   vehicleReg?: string;
@@ -16,11 +18,6 @@ export interface PCNData {
   containsFormalSignals: boolean;
   containsHardCourtArtefacts: boolean;
   formalSignalReason?: string;
-  clarificationQuestions?: {
-    id: string;
-    question: string;
-    options: string[];
-  }[];
 }
 
 export interface StrongestClaim {
@@ -39,12 +36,6 @@ export interface LetterDraft {
   rationale: string;
 }
 
-export interface GemConfig {
-  systemInstruction: string;
-  modelName: string;
-  webhookUrl?: string;
-}
-
 export type AppState = 
   | 'DISCLAIMER' 
   | 'UPLOAD' 
@@ -52,6 +43,11 @@ export type AppState =
   | 'DATA_INCOMPLETE'
   | 'TYPE_CONFIRMATION'
   | 'JURISDICTION_CONFIRMATION'
+  | 'COUNCIL_CATEGORY_SELECT'
+  | 'COUNCIL_CONTRAVENTION_SELECT'
+  | 'COUNCIL_EVIDENCE_UPLOAD'
+  | 'COUNCIL_DEFENCE_SELECT'
+  | 'MITIGATION_PROMPT'
   | 'COURT_CONFIRMATION'
   | 'COUNCIL_RISK_CHECK'
   | 'COUNCIL_STATUS_CHECK'

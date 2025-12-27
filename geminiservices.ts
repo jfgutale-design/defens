@@ -53,7 +53,9 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
             containsFormalSignals: { type: Type.BOOLEAN },
             containsHardCourtArtefacts: { type: Type.BOOLEAN },
             extractionConfidence: { type: Type.NUMBER },
-            location: { type: Type.STRING, nullable: true }
+            location: { type: Type.STRING, nullable: true },
+            contraventionCode: { type: Type.STRING, nullable: true },
+            contraventionDescription: { type: Type.STRING, nullable: true }
           },
           required: ["noticeType", "jurisdiction", "containsFormalSignals", "containsHardCourtArtefacts", "extractionConfidence"]
         }
@@ -78,16 +80,20 @@ export const generateStrongestClaim = async (pcnData: PCNData, userAnswers: Reco
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: [{
-      parts: [{ text: `Identify the strongest formal challenge strategy for a ${pcnData.noticeType === 'council_pcn' ? 'Council Statutory Notice' : 'Private Contractual Parking Charge'}.
-      Extracted data: ${JSON.stringify(pcnData)}
-      User input: ${JSON.stringify(userAnswers)}
+      parts: [{ text: `Analyze the following case and identify the most robust formal representation strategy.
       
-      ${pcnData.noticeType === 'council_pcn' 
-        ? "This is a Council Notice. Strategy must align with Traffic Management Regulations." 
-        : "This is a private charge. Strategy must align with Protection of Freedoms Regulations."}
+      NOTICE DATA: ${JSON.stringify(pcnData)}
+      USER INPUTS/DEFENCES: ${JSON.stringify(userAnswers)}
       
-      HARD RULE: Do NOT use the word 'legal', 'legislation', or 'solicitor'. Use 'rules', 'regulations', or 'procedural requirements'. 
-      Base the rationale strictly on the provided facts and identified entity type.` }]
+      CONTEXT: This is a ${pcnData.noticeType === 'council_pcn' ? 'Statutory Council Notice' : 'Contractual Private Charge'}.
+      
+      GOAL: Summarize why the charge should be cancelled. 
+      If it is a Council PCN, ensure the strategy incorporates procedural requirements and specific regulatory defenses (e.g., signage failure, de minimis, or mandatory exercise of discretion).
+      
+      STRICT LANGUAGE RULE:
+      - NEVER use the words 'legal', 'legislation', 'lawyer', 'solicitor', 'law'.
+      - USE 'rules', 'regulations', 'procedural requirements', 'regulatory framework', 'formal representation', 'adviser'.
+      - Keep the tone professional and authoritative.` }]
     }],
     config: {
       responseMimeType: "application/json",
@@ -112,20 +118,30 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
 
   let prompt = "";
   if (pcnData.noticeType === 'council_pcn') {
-    prompt = `Draft a formal Representation to the Council. 
-       Context: England & Wales Statutory Rules.
-       Facts: ${JSON.stringify({pcnData, userAnswers})}.
-       TONE: Professional and factual.
-       STRICT RULE: Do NOT use the word 'legal' or 'solicitor'. The letter should state why the notice should be cancelled based on procedural rules.`;
+    prompt = `Draft a highly formal, authoritative Statutory Representation to the Local Authority regarding a Penalty Charge Notice.
+       
+       FACTS: ${JSON.stringify({pcnData, userAnswers})}.
+       
+       REQUIREMENTS:
+       1. Use highly sophisticated regulatory language. 
+       2. Incorporate terms like "Procedural Impropriety", "Statutory Guidance", "Traffic Regulation Order", "TSRGD 2016 compliance", "Exercise of Discretion", and "De Minimis".
+       3. Explicitly state that the Authority is obliged to consider mitigating circumstances and exercise its discretion as per Secretary of State's Statutory Guidance.
+       4. Deny the contravention occurred based on the specific points raised by the user (e.g., signage failure, continuous loading activity).
+       
+       STRICT LANGUAGE RULE:
+       - NEVER use 'legal', 'legislation', 'lawyer', 'solicitor', 'law'.
+       - USE 'regulations', 'rules', 'procedural requirements', 'statutory framework', 'adviser'.
+       
+       TONE: Firm, formal, and structured. This must look like a professional representation from an experienced adviser.`;
   } else {
     prompt = isLateStage 
       ? `Draft a formal dispute and procedural disclosure response for this LATE STAGE private charge. 
-         Focus on the lack of evidence and the request for original data records. 
-         STRICT RULE: Do NOT use the word 'legal' or 'lawyer'. 
+         Focus on the lack of evidence and the request for original data records (Subject Access Request and Pre-litigation Disclosure). 
+         STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
          Facts: ${JSON.stringify({pcnData, userAnswers})}.`
       : `Draft a professional formal representation for this Private Parking Charge. 
-         Focus on why the contractual charge is not due under the operator's own rules.
-         STRICT RULE: Do NOT use the word 'legal' or 'solicitor'.
+         Focus on why the contractual charge is not due under the operator's own rules or signage failures.
+         STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
          Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
   }
 
