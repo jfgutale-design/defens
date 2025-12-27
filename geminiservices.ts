@@ -28,7 +28,17 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType: mimeType } },
-          { text: "Extract UK PCN/Parking notice details. Return JSON. If PCN Reference number is not visible, set pcnNumber: 'NOT_FOUND'. IMPORTANT: Set 'containsFormalSignals' to true if you detect debt collection keywords (debt recovery, final demand, formal demand, we are instructed, letter before claim, etc.). Only set 'containsHardCourtArtefacts' for actual N1 forms." }
+          { text: `Extract UK notice or debt recovery details. Return JSON. 
+          
+          STRICT CLASSIFICATION RULES:
+          1. noticeType: 'council_pcn' ONLY if the 'Creditor' is a Borough Council, City Council, or County Council, or cites 'Traffic Management Act 2004' or 'Road Traffic Regulation Act'.
+          2. noticeType: 'private_parking_charge' ONLY if the 'Creditor' is a private limited company (e.g., ParkingEye, Euro Car Parks, CP Plus) or cites 'Protection of Freedoms Act 2012' or refers to a 'Contractual Debt'.
+          3. noticeType: 'unknown' if the document is from a generic Debt Collector (e.g., DCBL, ZZPS) and the original 'Creditor' is not explicitly clear as either a Council or Private operator.
+          
+          GENERAL RULES:
+          - Set 'containsFormalSignals' to true if this is a Debt Recovery letter or Final Demand.
+          - Set 'containsHardCourtArtefacts' ONLY for official Court Claim forms (e.g., Form N1).
+          - If Reference number is not visible, set pcnNumber: 'NOT_FOUND'.` }
         ]
       },
       config: {
@@ -64,14 +74,20 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
 
 export const generateStrongestClaim = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<StrongestClaim> => {
   const ai = getAI();
-  const isLateStage = pcnData.containsFormalSignals && pcnData.noticeType === 'private_parking_charge';
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: [{
-      parts: [{ text: `Based ONLY on extracted data: ${JSON.stringify(pcnData)} and user answers: ${JSON.stringify(userAnswers)}, identify the strongest legal challenge.
-      ${isLateStage ? "This is a LATE STAGE debt collection notice. The strategy MUST include a demand for a full pre-litigation disclosure pack." : ""}
-      HARD RULE: Do NOT invent facts. Rationale must be in plain English.` }]
+      parts: [{ text: `Identify the strongest formal challenge strategy for a ${pcnData.noticeType === 'council_pcn' ? 'Council Statutory Notice' : 'Private Contractual Parking Charge'}.
+      Extracted data: ${JSON.stringify(pcnData)}
+      User input: ${JSON.stringify(userAnswers)}
+      
+      ${pcnData.noticeType === 'council_pcn' 
+        ? "This is a Council Notice. Strategy must align with Traffic Management Regulations." 
+        : "This is a private charge. Strategy must align with Protection of Freedoms Regulations."}
+      
+      HARD RULE: Do NOT use the word 'legal', 'legislation', or 'solicitor'. Use 'rules', 'regulations', or 'procedural requirements'. 
+      Base the rationale strictly on the provided facts and identified entity type.` }]
     }],
     config: {
       responseMimeType: "application/json",
@@ -91,20 +107,27 @@ export const generateStrongestClaim = async (pcnData: PCNData, userAnswers: Reco
 
 export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<LetterDraft> => {
   const ai = getAI();
-  const isLateStage = pcnData.containsFormalSignals && pcnData.noticeType === 'private_parking_charge';
+  const isPrivate = pcnData.noticeType === 'private_parking_charge';
+  const isLateStage = pcnData.containsFormalSignals && isPrivate;
 
-  const prompt = isLateStage 
-    ? `Draft a professional formal dispute and pre-litigation disclosure pack for this LATE STAGE private parking charge. 
-       Use ONLY confirmed facts: ${JSON.stringify({pcnData, userAnswers})}.
-       THE DRAFT MUST INCLUDE:
-       1. Formal Dispute of the debt based on the user's reasons.
-       2. A formal Subject Access Request (SAR) for all personal data, photos, logs, and correspondence.
-       3. A demand for proof of STANDING (Landowner Authority/Contract).
-       4. A demand for a full breakdown of the sums claimed.
-       5. A warning that any court action without this disclosure will be challenged as a breach of the Pre-Action Protocol.
-       TONE: Senior specialist, firm, and legally precise.`
-    : `Draft a professional formal representation using ONLY these confirmed facts: ${JSON.stringify({pcnData, userAnswers})}. 
-       Do NOT invent facts. Tone: expert and firm.`;
+  let prompt = "";
+  if (pcnData.noticeType === 'council_pcn') {
+    prompt = `Draft a formal Representation to the Council. 
+       Context: England & Wales Statutory Rules.
+       Facts: ${JSON.stringify({pcnData, userAnswers})}.
+       TONE: Professional and factual.
+       STRICT RULE: Do NOT use the word 'legal' or 'solicitor'. The letter should state why the notice should be cancelled based on procedural rules.`;
+  } else {
+    prompt = isLateStage 
+      ? `Draft a formal dispute and procedural disclosure response for this LATE STAGE private charge. 
+         Focus on the lack of evidence and the request for original data records. 
+         STRICT RULE: Do NOT use the word 'legal' or 'lawyer'. 
+         Facts: ${JSON.stringify({pcnData, userAnswers})}.`
+      : `Draft a professional formal representation for this Private Parking Charge. 
+         Focus on why the contractual charge is not due under the operator's own rules.
+         STRICT RULE: Do NOT use the word 'legal' or 'solicitor'.
+         Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
+  }
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
