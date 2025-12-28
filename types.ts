@@ -1,8 +1,17 @@
 
 export type NoticeType = 'council_pcn' | 'private_parking_charge' | 'unknown';
 export type CaseStage = 'EARLY' | 'LATE' | 'RED_FLAG';
+export type DraftType = 'PCN_REPRESENTATION' | 'PRIVATE_PRE_ACTION_SAR_PACK';
 
-export type ContraventionCategory = 'PARKING' | 'TURNING' | 'BOX_JUNCTION' | 'BUS_LANE' | 'OTHER';
+export type ContraventionCategory = 
+  | 'PARKING_SHARED_BAY' 
+  | 'YELLOW_LINE_SINGLE' 
+  | 'YELLOW_LINE_DOUBLE' 
+  | 'RED_ROUTE' 
+  | 'BUS_LANE' 
+  | 'YELLOW_BOX' 
+  | 'WRONG_TURN_NO_ENTRY'
+  | 'OTHER';
 
 export interface PCNData {
   pcnNumber: string;
@@ -27,9 +36,9 @@ export interface StrongestClaim {
 }
 
 export interface LetterDraft {
+  draftType: DraftType;
   letter: string;
   sarLetter?: string; 
-  pacLetter?: string; 
   verificationStatus: 'VERIFIED' | 'BLOCKED_PREVIEW_ONLY';
   sourceCitations: string[];
   evidenceChecklist: string[];
@@ -41,19 +50,16 @@ export type AppState =
   | 'UPLOAD' 
   | 'ANALYZING' 
   | 'DATA_INCOMPLETE'
-  | 'TYPE_CONFIRMATION'
-  | 'JURISDICTION_CONFIRMATION'
-  | 'COUNCIL_CATEGORY_SELECT'
-  | 'COUNCIL_CONTRAVENTION_SELECT'
-  | 'COUNCIL_EVIDENCE_UPLOAD'
-  | 'COUNCIL_DEFENCE_SELECT'
-  | 'MITIGATION_PROMPT'
+  | 'INTAKE_JURISDICTION'
+  | 'INTAKE_TYPE'
+  | 'INTAKE_STAGE'
+  | 'INTAKE_METHOD'
+  | 'INTAKE_APPEAL_STATUS'
+  | 'CONTRAVENTION_SELECT'
+  | 'DEFENCE_SELECT'
+  | 'EXPLANATION_INPUT'
+  | 'STRATEGY_PROPOSAL'
   | 'COURT_CONFIRMATION'
-  | 'COUNCIL_RISK_CHECK'
-  | 'COUNCIL_STATUS_CHECK'
-  | 'COUNCIL_SOLICITOR_ADVICE'
-  | 'COUNCIL_CUSTOM_HELP'
-  | 'QUESTIONS' 
   | 'STRONGEST_CLAIM'
   | 'DRAFTING' 
   | 'RED_FLAG_PAUSE'

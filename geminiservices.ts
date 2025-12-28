@@ -28,17 +28,13 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType: mimeType } },
-          { text: `Extract UK notice or debt recovery details. Return JSON. 
+          { text: `Extract UK notice details for DEFENS UK. 
           
-          STRICT CLASSIFICATION RULES:
-          1. noticeType: 'council_pcn' ONLY if the 'Creditor' is a Borough Council, City Council, or County Council, or cites 'Traffic Management Act 2004' or 'Road Traffic Regulation Act'.
-          2. noticeType: 'private_parking_charge' ONLY if the 'Creditor' is a private limited company (e.g., ParkingEye, Euro Car Parks, CP Plus) or cites 'Protection of Freedoms Act 2012' or refers to a 'Contractual Debt'.
-          3. noticeType: 'unknown' if the document is from a generic Debt Collector (e.g., DCBL, ZZPS) and the original 'Creditor' is not explicitly clear as either a Council or Private operator.
-          
-          GENERAL RULES:
-          - Set 'containsFormalSignals' to true if this is a Debt Recovery letter, Final Demand, or Letter Before Claim/Letter of Claim.
-          - Set 'containsHardCourtArtefacts' ONLY for official Court Claim forms (e.g., Form N1).
-          - If Reference number is not visible, set pcnNumber: 'NOT_FOUND'.` }
+          STRICT CLASSIFICATION:
+          1. noticeType: 'council_pcn' for Local Authority notices (Borough/City/County/TfL).
+          2. noticeType: 'private_parking_charge' for private limited company contractual charges.
+          3. containsFormalSignals: Set to true if keywords like 'Debt Recovery', 'Final Demand', 'Collection Agent', or 'Letter Before Claim' are present.
+          4. containsHardCourtArtefacts: Set to true only for official Form N1 Court Claim forms.` }
         ]
       },
       config: {
@@ -52,10 +48,7 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
             jurisdiction: { type: Type.STRING, enum: ['England_Wales', 'Scotland', 'NI', 'Unknown'] },
             containsFormalSignals: { type: Type.BOOLEAN },
             containsHardCourtArtefacts: { type: Type.BOOLEAN },
-            extractionConfidence: { type: Type.NUMBER },
-            location: { type: Type.STRING, nullable: true },
-            contraventionCode: { type: Type.STRING, nullable: true },
-            contraventionDescription: { type: Type.STRING, nullable: true }
+            extractionConfidence: { type: Type.NUMBER }
           },
           required: ["noticeType", "jurisdiction", "containsFormalSignals", "containsHardCourtArtefacts", "extractionConfidence"]
         }
@@ -65,35 +58,68 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
     const parsed = JSON.parse(cleanJson(response.text));
     return {
       ...parsed,
-      pcnNumber: (parsed.pcnNumber && parsed.pcnNumber !== "null") ? parsed.pcnNumber : "NOT_FOUND"
+      pcnNumber: parsed.pcnNumber || "NOT_FOUND"
     } as PCNData;
   } catch (error: any) {
-    console.error("Extraction Error:", error);
-    if (error.message === "API_KEY_MISSING") throw error;
     throw new Error("SCAN_FAILED");
   }
 };
 
+export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<{ summary: string, rationale: string }> => {
+  const ai = getAI();
+  
+  const isYellowBox = userAnswers['contravention_category'] === 'YELLOW_BOX';
+  const yellowBoxOverride = isYellowBox ? `
+    LEGAL FRAMING OVERRIDE — MOVING TRAFFIC (YELLOW_BOX):
+    - DO NOT describe the behaviour as "parking".
+    - DO NOT refer to contracts, breach of contract, or agreement to terms.
+    - DESCRIBE the allegation ONLY as: "entering and stopping in a box junction when prohibited".
+    - ARGUMENTS ARE LIMITED TO: exit was clear when entering, stop caused by another vehicle/obstruction, stop was momentary (de minimis) in the context of stopping (not parking), markings or signage non-compliant, or evidence does not show exit blocked at entry.
+  ` : "";
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: [{
+      parts: [{ text: `Based on the following case:
+      DATA: ${JSON.stringify(pcnData)}
+      USER_ANSWERS: ${JSON.stringify(userAnswers)}
+      
+      ${yellowBoxOverride}
+
+      Provide a proposed defence strategy in PLAIN ENGLISH. 
+      DO NOT cite specific laws or regulations yet.
+      Focus on the logical argument for why the charge should be cancelled.
+      Tone: Formal, helpful, determined.` }]
+    }],
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          rationale: { type: Type.STRING }
+        },
+        required: ["summary", "rationale"]
+      }
+    }
+  });
+  return JSON.parse(cleanJson(response.text));
+};
+
 export const generateStrongestClaim = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<StrongestClaim> => {
   const ai = getAI();
+  const isPrivate = pcnData.noticeType === 'private_parking_charge';
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: [{
-      parts: [{ text: `Analyze the following case and identify the most robust formal representation strategy.
+      parts: [{ text: `Analyze the following case facts for a formal challenge:
+      DATA: ${JSON.stringify(pcnData)}
+      USER_SELECTIONS: ${JSON.stringify(userAnswers)}
       
-      NOTICE DATA: ${JSON.stringify(pcnData)}
-      USER INPUTS/DEFENCES: ${JSON.stringify(userAnswers)}
+      ${isPrivate ? "MANDATORY: Identify ONLY the single most relevant private parking rule to challenge this charge. Do not provide multiple grounds." : "Focus on procedural impropriety and mandatory exercise of authority discretion."}
       
-      CONTEXT: This is a ${pcnData.noticeType === 'council_pcn' ? 'Statutory Council Notice' : 'Contractual Private Charge'}.
-      
-      GOAL: Summarize why the charge should be cancelled. 
-      If it is a Council PCN, ensure the strategy incorporates procedural requirements and specific regulatory defenses (e.g., signage failure, de minimis, or mandatory exercise of discretion).
-      
-      STRICT LANGUAGE RULE:
-      - NEVER use the words 'legal', 'legislation', 'lawyer', 'solicitor', 'law'.
-      - USE 'rules', 'regulations', 'procedural requirements', 'regulatory framework', 'formal representation', 'adviser'.
-      - Keep the tone professional and authoritative.` }]
+      STRICT TONE: Use formal 'Rules/Regulations' terminology. NEVER use 'legal', 'lawyer', 'solicitor', or 'legislation'. Use 'regulatory framework', 'procedural rules', 'formal representation', 'adviser'.` }]
     }],
     config: {
       responseMimeType: "application/json",
@@ -114,35 +140,49 @@ export const generateStrongestClaim = async (pcnData: PCNData, userAnswers: Reco
 export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<LetterDraft> => {
   const ai = getAI();
   const isPrivate = pcnData.noticeType === 'private_parking_charge';
-  const isLateStage = pcnData.containsFormalSignals && isPrivate;
+  const isYellowBox = userAnswers['contravention_category'] === 'YELLOW_BOX';
 
   let prompt = "";
-  if (pcnData.noticeType === 'council_pcn') {
-    prompt = `Draft a highly formal, authoritative Statutory Representation to the Local Authority regarding a Penalty Charge Notice.
+  if (isPrivate) {
+    prompt = `MANDATORY DRAFT TYPE: PRIVATE_PRE_ACTION_SAR_PACK.
+       CONDITION: PRIVATE PARKING.
+       MANDATORY:
+       - You MAY use contract language, breach of contract terminology, and SARs where applicable.
+       - OUTPUT:
+         1. A Pre-Litigation Response Letter (in 'letter' field).
+         2. A Subject Access Request (SAR) (in 'sarLetter' field).
        
-       FACTS: ${JSON.stringify({pcnData, userAnswers})}.
+       STRICT LANGUAGE: Use 'rules', 'regulations', 'procedural requirements'. No 'legal' or 'lawyer'.
+       FACTS: ${JSON.stringify({pcnData, userAnswers})}.`;
+  } else if (pcnData.noticeType === 'council_pcn') {
+    const yellowBoxOverride = isYellowBox ? `
+      LEGAL FRAMING OVERRIDE — MOVING TRAFFIC (YELLOW_BOX):
+      - DO NOT describe the behaviour as "parking".
+      - DO NOT refer to contracts, breach of contract, or agreement to terms.
+      - DESCRIBE the allegation ONLY as: "entering and stopping in a box junction when prohibited".
+      - ARGUMENTS ARE LIMITED TO: exit was clear when entering, stop caused by another vehicle/obstruction, stop was momentary (de minimis) in the context of stopping (not parking), markings or signage non-compliant, or evidence does not show exit blocked at entry.
+    ` : "";
+
+    prompt = `HARD LOCK — DRAFT TYPE BY DOCUMENT TYPE:
+       CONDITION: This is a LOCAL_AUTHORITY_PCN (Council/TfL).
+       MANDATORY DRAFT TYPE: PCN_REPRESENTATION (Representations / Appeal only).
        
-       REQUIREMENTS:
-       1. Use highly sophisticated regulatory language. 
-       2. Incorporate terms like "Procedural Impropriety", "Statutory Guidance", "Traffic Regulation Order", "TSRGD 2016 compliance", "Exercise of Discretion", and "De Minimis".
-       3. Explicitly state that the Authority is obliged to consider mitigating circumstances and exercise its discretion as per Secretary of State's Statutory Guidance.
+       STRICT PROHIBITIONS:
+       - You MUST NOT dispute a “debt”.
+       - You MUST NOT mention “contracts” or “breach of contract”.
+       - You MUST NOT include “Pre-Action Protocol” language.
+       - You MUST NOT include a “Subject Access Request” (SAR).
        
-       STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer', 'solicitor'. Use 'regulations', 'rules', 'procedural requirements', 'adviser'.`;
-  } else if (isLateStage) {
-    prompt = `This is a PRIVATE PARKING charge at LATE STAGE (Debt Recovery / Pre-Action). 
-       You MUST generate TWO SEPARATE DOCUMENTS:
-       1. A Pre-action Protocol Dispute & Disclosure Letter. This letter must dispute the debt, cite the lack of evidence provided so far, and request a list of documents (contract, signage logs, etc.) before any claim is issued.
-       2. A Subject Access Request (SAR). This letter must formally request all personal data held by the operator.
+       MANDATORY TERMINOLOGY:
+       - Use statutory PCN language only (e.g., “Representations”, “Appeal”, “Procedural Impropriety”).
+       - Incorporate 'De Minimis' and 'Authority Exercise of Discretion'.
        
-       Return BOTH in a JSON object with 'letter' (Pre-action) and 'sarLetter' fields.
-       
-       STRICT LANGUAGE RULE: No 'legal', 'lawyer', 'solicitor'. Use 'regulatory', 'rules', 'adviser'.
-       Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
+       ${yellowBoxOverride}
+
+       FACTS: Draft a formal Statutory Representation based on: ${JSON.stringify(userAnswers)}. 
+       STRICT LANGUAGE: No 'legal' or 'lawyer'. Use 'rules', 'regulations', 'procedural requirements'.`;
   } else {
-    prompt = `Draft a professional formal representation for this EARLY STAGE Private Parking Charge appeal. 
-       Focus on why the contractual charge is not due under the operator's own rules or signage failures.
-       STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
-       Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
+    throw new Error("INVALID_NOTICE_TYPE_FOR_DRAFTING");
   }
 
   const response = await ai.models.generateContent({
@@ -153,6 +193,7 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          draftType: { type: Type.STRING, enum: ['PCN_REPRESENTATION', 'PRIVATE_PRE_ACTION_SAR_PACK'] },
           letter: { type: Type.STRING },
           sarLetter: { type: Type.STRING, nullable: true },
           verificationStatus: { type: Type.STRING, enum: ['VERIFIED', 'BLOCKED_PREVIEW_ONLY'] },
@@ -160,7 +201,7 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
           evidenceChecklist: { type: Type.ARRAY, items: { type: Type.STRING } },
           rationale: { type: Type.STRING }
         },
-        required: ["letter", "verificationStatus", "sourceCitations", "evidenceChecklist", "rationale"]
+        required: ["draftType", "letter", "verificationStatus", "sourceCitations", "evidenceChecklist", "rationale"]
       }
     }
   });
