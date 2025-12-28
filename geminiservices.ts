@@ -36,7 +36,7 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
           3. noticeType: 'unknown' if the document is from a generic Debt Collector (e.g., DCBL, ZZPS) and the original 'Creditor' is not explicitly clear as either a Council or Private operator.
           
           GENERAL RULES:
-          - Set 'containsFormalSignals' to true if this is a Debt Recovery letter or Final Demand.
+          - Set 'containsFormalSignals' to true if this is a Debt Recovery letter, Final Demand, or Letter Before Claim/Letter of Claim.
           - Set 'containsHardCourtArtefacts' ONLY for official Court Claim forms (e.g., Form N1).
           - If Reference number is not visible, set pcnNumber: 'NOT_FOUND'.` }
         ]
@@ -126,23 +126,23 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
        1. Use highly sophisticated regulatory language. 
        2. Incorporate terms like "Procedural Impropriety", "Statutory Guidance", "Traffic Regulation Order", "TSRGD 2016 compliance", "Exercise of Discretion", and "De Minimis".
        3. Explicitly state that the Authority is obliged to consider mitigating circumstances and exercise its discretion as per Secretary of State's Statutory Guidance.
-       4. Deny the contravention occurred based on the specific points raised by the user (e.g., signage failure, continuous loading activity).
        
-       STRICT LANGUAGE RULE:
-       - NEVER use 'legal', 'legislation', 'lawyer', 'solicitor', 'law'.
-       - USE 'regulations', 'rules', 'procedural requirements', 'statutory framework', 'adviser'.
+       STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer', 'solicitor'. Use 'regulations', 'rules', 'procedural requirements', 'adviser'.`;
+  } else if (isLateStage) {
+    prompt = `This is a PRIVATE PARKING charge at LATE STAGE (Debt Recovery / Pre-Action). 
+       You MUST generate TWO SEPARATE DOCUMENTS:
+       1. A Pre-action Protocol Dispute & Disclosure Letter. This letter must dispute the debt, cite the lack of evidence provided so far, and request a list of documents (contract, signage logs, etc.) before any claim is issued.
+       2. A Subject Access Request (SAR). This letter must formally request all personal data held by the operator.
        
-       TONE: Firm, formal, and structured. This must look like a professional representation from an experienced adviser.`;
+       Return BOTH in a JSON object with 'letter' (Pre-action) and 'sarLetter' fields.
+       
+       STRICT LANGUAGE RULE: No 'legal', 'lawyer', 'solicitor'. Use 'regulatory', 'rules', 'adviser'.
+       Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
   } else {
-    prompt = isLateStage 
-      ? `Draft a formal dispute and procedural disclosure response for this LATE STAGE private charge. 
-         Focus on the lack of evidence and the request for original data records (Subject Access Request and Pre-litigation Disclosure). 
-         STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
-         Facts: ${JSON.stringify({pcnData, userAnswers})}.`
-      : `Draft a professional formal representation for this Private Parking Charge. 
-         Focus on why the contractual charge is not due under the operator's own rules or signage failures.
-         STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
-         Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
+    prompt = `Draft a professional formal representation for this EARLY STAGE Private Parking Charge appeal. 
+       Focus on why the contractual charge is not due under the operator's own rules or signage failures.
+       STRICT LANGUAGE RULE: No 'legal', 'legislation', 'lawyer'. Use 'regulatory', 'rules', 'adviser'.
+       Facts: ${JSON.stringify({pcnData, userAnswers})}.`;
   }
 
   const response = await ai.models.generateContent({
@@ -154,6 +154,7 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
         type: Type.OBJECT,
         properties: {
           letter: { type: Type.STRING },
+          sarLetter: { type: Type.STRING, nullable: true },
           verificationStatus: { type: Type.STRING, enum: ['VERIFIED', 'BLOCKED_PREVIEW_ONLY'] },
           sourceCitations: { type: Type.ARRAY, items: { type: Type.STRING } },
           evidenceChecklist: { type: Type.ARRAY, items: { type: Type.STRING } },
