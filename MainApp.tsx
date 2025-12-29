@@ -7,6 +7,16 @@ import { PCNData, AppState, LetterDraft, StrongestClaim, NoticeType, Contraventi
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/00w8wQ1lggCXayYgy1ebu0a";
 const SUPPORT_EMAIL = "support@defens.co.uk";
 
+const PRIVATE_DISPUTE_OPTIONS = [
+  { id: 'private_signage', label: 'No signage / unclear signage' },
+  { id: 'private_no_contract', label: 'No contract formed' },
+  { id: 'private_not_driver', label: 'Not the driver' },
+  { id: 'private_no_keeper_liability', label: 'Keeper liability not established (POFA Schedule 4)' },
+  { id: 'private_permission', label: 'Paid / authorised parking' },
+  { id: 'private_blue_badge', label: 'Blue Badge / Equality Act 2010' },
+  { id: 'private_other', label: 'Other (user free text)' },
+];
+
 const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: string, plain: string }[]> = {
   "PARKING_SHARED_BAY": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were parked correctly or not parked as alleged." },
@@ -136,8 +146,18 @@ const MainApp: React.FC = () => {
         const base64 = (e.target?.result as string).split(',')[1];
         const data = await executePass1Extraction(base64, file.type);
         setPcnData(data);
-        if (data.extractionConfidence < 0.4 || data.pcnNumber === 'NOT_FOUND') setState('DATA_INCOMPLETE');
-        else setState('INTAKE_JURISDICTION');
+        if (data.extractionConfidence < 0.4 || data.pcnNumber === 'NOT_FOUND') {
+          setState('DATA_INCOMPLETE');
+        } else {
+          // Route based on classification
+          if (data.classifiedStage === 'COURT_CLAIM' || data.containsHardCourtArtefacts) {
+            setState('RED_FLAG_PAUSE');
+          } else if (data.classifiedStage === 'PRIVATE_PARKING_DEBT') {
+            setState('PRIVATE_DEBT_DISPUTE_CHECK');
+          } else {
+            setState('INTAKE_JURISDICTION');
+          }
+        }
         setIsLoading(false);
       };
       reader.readAsDataURL(file);
@@ -194,9 +214,9 @@ const MainApp: React.FC = () => {
 
   if (!isInitialized) return null;
 
-  const renderIntakeQuestion = (question: string, onYes: () => void, onNo: () => void) => (
+  const renderIntakeQuestion = (question: string, onYes: () => void, onNo: () => void, header: string = "Intake Process") => (
     <div className="bg-white p-12 rounded-[4rem] shadow-2xl text-center space-y-10 animate-in slide-in-from-bottom duration-500">
-      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">Intake Process</h2>
+      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">{header}</h2>
       <p className="text-slate-500 font-bold text-xl leading-tight">{question}</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
          <button onClick={onYes} className="bg-slate-50 py-8 rounded-[2rem] border-4 border-slate-100 font-black italic hover:border-amber-500 active:scale-95 transition-all text-center text-2xl">YES</button>
@@ -204,6 +224,25 @@ const MainApp: React.FC = () => {
       </div>
     </div>
   );
+
+  const renderLetterPreview = (text: string) => {
+    if (isUnlocked) {
+      return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
+    }
+    const lines = text.split('\n');
+    const visiblePart = lines.slice(0, 3).join('\n');
+    const blurredPart = lines.slice(3).join('\n');
+    
+    return (
+      <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative select-none">
+        <div className="relative z-10">{visiblePart}</div>
+        <div className="blur-xl opacity-20 pointer-events-none select-none max-h-40 overflow-hidden mt-1">
+          {blurredPart}
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent z-20 pointer-events-none"></div>
+      </div>
+    );
+  };
 
   const renderContent = () => {
     switch (state) {
@@ -253,7 +292,11 @@ const MainApp: React.FC = () => {
           "Is this a Council or TfL issued notice? (NOT a private parking charge)",
           () => setState('INTAKE_STAGE'),
           () => {
-            setState('COURT_CONFIRMATION');
+            if (pcnData?.classifiedStage === 'PRIVATE_PARKING_DEBT') {
+              setState('PRIVATE_DEBT_DISPUTE_CHECK');
+            } else {
+              setState('CONTRAVENTION_SELECT');
+            }
           }
         );
       case 'INTAKE_STAGE':
@@ -362,18 +405,79 @@ const MainApp: React.FC = () => {
             <button disabled={!strategyAgreed} onClick={generateDraft} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
           </div>
         );
-      case 'COURT_CONFIRMATION':
+      case 'PRIVATE_DEBT_DISPUTE_CHECK':
+        // STEP 1 - DEBT CONFIRMATION (YES/NO)
         return renderIntakeQuestion(
-          "Have you received official County Court claim papers (N1 Form) for this specific reference?",
-          () => setState('RED_FLAG_PAUSE'),
+          "Do you dispute this parking charge debt?",
           () => {
-            setState('DRAFTING');
-            setIsLoading(true);
-            executePass2And3Drafting(pcnData!, userAnswers)
-              .then(d => { setLetterDraft(d); setState('RESULT'); })
-              .catch(() => setState('UPLOAD'))
-              .finally(() => setIsLoading(false));
-          }
+            setUserAnswers({...userAnswers, userConfirmedDebtDispute: 'true'});
+            setState('PRIVATE_DISPUTE_BASIS');
+          },
+          () => setState('RED_FLAG_PAUSE'),
+          "PRIVATE PARKING DEBT — STEP 1"
+        );
+      case 'PRIVATE_DISPUTE_BASIS':
+        // STEP 2 - DISPUTE BASIS
+        const selectedBases = PRIVATE_DISPUTE_OPTIONS.filter(opt => userAnswers[opt.id] === 'true');
+        return (
+          <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
+            <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter text-slate-950 leading-[0.85]">PRIVATE PARKING DEBT — STEP 2</h2>
+            <p className="text-slate-500 font-bold text-center leading-tight">Select your legal basis for dispute:</p>
+            <div className="grid grid-cols-1 gap-4">
+              {PRIVATE_DISPUTE_OPTIONS.map(opt => (
+                <label key={opt.id} className={`flex items-start gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers[opt.id] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
+                  <input type="checkbox" className="w-7 h-7 mt-1" checked={userAnswers[opt.id] === 'true'} onChange={e => setUserAnswers({...userAnswers, [opt.id]: e.target.checked ? 'true' : 'false'})} />
+                  <span className="text-lg font-black italic uppercase block leading-tight">{opt.label}</span>
+                </label>
+              ))}
+            </div>
+            <button 
+              disabled={selectedBases.length === 0}
+              onClick={() => {
+                setUserAnswers({...userAnswers, userSelectedReasons: 'true'});
+                setState('PRIVATE_USER_EXPLANATION');
+              }} 
+              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
+            >
+              Continue
+            </button>
+          </div>
+        );
+      case 'PRIVATE_USER_EXPLANATION':
+        // STEP 3 - USER EXPLANATION (REQUIRED)
+        const pWordCount = (userAnswers['private_user_explanation'] || "").trim().split(/\s+/).filter(w => w.length > 0).length;
+        const canDraft = userAnswers.userConfirmedDebtDispute === 'true' && userAnswers.userSelectedReasons === 'true' && pWordCount > 0 && pWordCount <= 500;
+        
+        return (
+          <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
+            <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter text-slate-950 leading-[0.85]">PRIVATE PARKING DEBT — STEP 3</h2>
+            <p className="text-slate-500 font-bold text-center leading-tight">Briefly explain why the selected reason(s) apply (max 500 words).</p>
+            <div className="relative">
+              <textarea 
+                className="w-full p-8 bg-slate-50 rounded-[2.5rem] border-4 border-slate-100 focus:border-amber-500 transition-all font-bold min-h-[300px] text-lg outline-none"
+                placeholder="Type your explanation here..."
+                value={userAnswers['private_user_explanation'] || ""}
+                onChange={e => setUserAnswers({...userAnswers, private_user_explanation: e.target.value})}
+              />
+              <div className={`absolute bottom-6 right-8 font-black text-xs ${pWordCount > 500 ? 'text-red-600' : 'text-slate-400'}`}>
+                {pWordCount} / 500 WORDS
+              </div>
+            </div>
+            <button 
+              disabled={!canDraft}
+              onClick={() => {
+                setState('DRAFTING');
+                setIsLoading(true);
+                executePass2And3Drafting(pcnData!, userAnswers)
+                  .then(d => { setLetterDraft(d); setState('RESULT'); })
+                  .catch(() => setState('UPLOAD'))
+                  .finally(() => setIsLoading(false));
+              }}
+              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
+            >
+              Submit and Draft
+            </button>
+          </div>
         );
       case 'RESULT':
         if (!letterDraft) return null;
@@ -386,20 +490,19 @@ const MainApp: React.FC = () => {
                   <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl">
                     {!isUnlocked ? (
                       <>
-                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter">Representation Ready</h2>
-                        <p className="text-slate-400 font-bold mb-10">Your statutory response for Council PCN is prepared.</p>
-                        <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Representation</a>
+                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Representation Ready</h2>
+                        <p className="text-slate-400 font-bold mb-10">Your statutory response is prepared.</p>
+                        <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
                       </>
                     ) : (
                       <>
                         <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
-                        <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Representation')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 mx-auto"><i className="fas fa-file-pdf"></i> Download Representation</button>
+                        <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Representation')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 mx-auto"><i className="fas fa-file-pdf"></i> Download Response</button>
                       </>
                     )}
                   </div>
                   <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-                    {!isUnlocked && <div className="absolute inset-0 z-30 bg-slate-100/10 backdrop-blur-[1px]"></div>}
-                    <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{letterDraft.letter}</div>
+                    {renderLetterPreview(letterDraft.letter)}
                   </div>
                   <div className="text-center pt-8">
                     <button onClick={reset} className="text-slate-400 font-black uppercase italic underline text-xs tracking-widest hover:text-amber-500 transition-colors">Start New Analysis</button>
@@ -412,8 +515,8 @@ const MainApp: React.FC = () => {
                   <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl">
                     {!isUnlocked ? (
                       <>
-                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter">Response Pack Ready</h2>
-                        <p className="text-slate-400 font-bold mb-10">Pre-Action Letter & SAR Pack for private parking debt is prepared.</p>
+                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Response Pack Ready</h2>
+                        <p className="text-slate-400 font-bold mb-10">Pre-Action Letter & SAR Pack are prepared.</p>
                         <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Full Pack</a>
                       </>
                     ) : (
@@ -427,8 +530,7 @@ const MainApp: React.FC = () => {
                     )}
                   </div>
                   <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-                    {!isUnlocked && <div className="absolute inset-0 z-30 bg-slate-100/10 backdrop-blur-[1px]"></div>}
-                    <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{letterDraft.letter}</div>
+                    {renderLetterPreview(letterDraft.letter)}
                   </div>
                   <div className="text-center pt-8">
                     <button onClick={reset} className="text-slate-400 font-black uppercase italic underline text-xs tracking-widest hover:text-amber-500 transition-colors">Start New Analysis</button>
@@ -442,11 +544,18 @@ const MainApp: React.FC = () => {
         return renderResultScreen();
 
       case 'RED_FLAG_PAUSE':
+        const isCourt = pcnData?.classifiedStage === 'COURT_CLAIM' || pcnData?.containsHardCourtArtefacts;
         return (
           <div className="bg-white p-16 rounded-[4rem] shadow-2xl text-center space-y-10 border-t-[12px] border-red-500 animate-in fade-in">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Intake Incomplete</h2>
-            <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">You need more custom legal help. Either contact a solicitor for advice or contact us and we can arrange this for you.</p>
-            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-3xl font-black italic underline block">{SUPPORT_EMAIL}</a>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">
+              {isCourt ? "Court Papers Received" : "Intake Incomplete"}
+            </h2>
+            <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">
+              {isCourt 
+                ? "You have received official court papers. You MUST seek professional legal advice immediately. We cannot assist at the court stage."
+                : "You need more custom legal help. Either contact a solicitor for advice or contact us and we can arrange this for you."}
+            </p>
+            {!isCourt && <a href={`mailto:${SUPPORT_EMAIL}`} className="text-3xl font-black italic underline block">{SUPPORT_EMAIL}</a>}
             <button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs pt-8 tracking-widest hover:text-red-500 transition-colors">Start Over</button>
           </div>
         );
