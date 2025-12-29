@@ -153,7 +153,9 @@ const MainApp: React.FC = () => {
           if (data.classifiedStage === 'COURT_CLAIM' || data.containsHardCourtArtefacts) {
             setState('RED_FLAG_PAUSE');
           } else if (data.classifiedStage === 'PRIVATE_PARKING_DEBT') {
-            setState('PRIVATE_DEBT_DISPUTE_CHECK');
+            setState('PRIVATE_STAGE_CHECK');
+          } else if (data.classifiedStage === 'PRIVATE_PARKING_PCN') {
+            setState('PRIVATE_STAGE_CHECK');
           } else {
             setState('INTAKE_JURISDICTION');
           }
@@ -230,13 +232,15 @@ const MainApp: React.FC = () => {
       return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
     }
     const lines = text.split('\n');
-    const visiblePart = lines.slice(0, 3).join('\n');
-    const blurredPart = lines.slice(3).join('\n');
+    // Show first 5 lines as requested
+    const visiblePart = lines.slice(0, 5).join('\n');
+    const blurredPart = lines.slice(5).join('\n');
     
     return (
       <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative select-none">
         <div className="relative z-10">{visiblePart}</div>
-        <div className="blur-xl opacity-20 pointer-events-none select-none max-h-40 overflow-hidden mt-1">
+        {/* Using blur-2xl for extra heavy blur to ensure unreadability */}
+        <div className="blur-2xl opacity-40 pointer-events-none select-none max-h-60 overflow-hidden mt-1 filter grayscale contrast-125">
           {blurredPart}
         </div>
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent z-20 pointer-events-none"></div>
@@ -292,24 +296,14 @@ const MainApp: React.FC = () => {
           "Is this a Council or TfL issued notice? (NOT a private parking charge)",
           () => setState('INTAKE_STAGE'),
           () => {
-            if (pcnData?.classifiedStage === 'PRIVATE_PARKING_DEBT') {
-              setState('PRIVATE_DEBT_DISPUTE_CHECK');
-            } else {
-              setState('CONTRAVENTION_SELECT');
-            }
+            setState('COURT_CONFIRMATION');
           }
         );
       case 'INTAKE_STAGE':
         return renderIntakeQuestion(
           "Have you received court papers OR a debt recovery letter from a council agent?",
           () => setState('RED_FLAG_PAUSE'),
-          () => setState('INTAKE_METHOD')
-        );
-      case 'INTAKE_METHOD':
-        return renderIntakeQuestion(
-          "Do you know how this notice was served (e.g. by post or attached to the vehicle)?",
-          () => setState('INTAKE_APPEAL_STATUS'),
-          () => setState('RED_FLAG_PAUSE')
+          () => setState('INTAKE_APPEAL_STATUS')
         );
       case 'INTAKE_APPEAL_STATUS':
         return renderIntakeQuestion(
@@ -405,6 +399,31 @@ const MainApp: React.FC = () => {
             <button disabled={!strategyAgreed} onClick={generateDraft} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
           </div>
         );
+      case 'COURT_CONFIRMATION':
+        return renderIntakeQuestion(
+          "Have you received official County Court claim papers (N1 Form) for this specific reference?",
+          () => setState('RED_FLAG_PAUSE'),
+          () => {
+            setState('PRIVATE_STAGE_CHECK');
+          },
+          "Legal Status Gate"
+        );
+      case 'PRIVATE_STAGE_CHECK':
+        // STEP 1 — STAGE CHECK
+        return renderIntakeQuestion(
+          "Does the letter mention a debt recovery company, debt collection, or added fees?",
+          () => {
+            // YES = DEBT COLLECTION STAGE
+            if (pcnData) pcnData.classifiedStage = 'PRIVATE_PARKING_DEBT';
+            setState('PRIVATE_DEBT_DISPUTE_CHECK');
+          },
+          () => {
+            // NO = APPEAL STAGE
+            if (pcnData) pcnData.classifiedStage = 'PRIVATE_PARKING_PCN';
+            setState('CONTRAVENTION_SELECT');
+          },
+          "PRIVATE PARKING STAGE GATE"
+        );
       case 'PRIVATE_DEBT_DISPUTE_CHECK':
         // STEP 1 - DEBT CONFIRMATION (YES/NO)
         return renderIntakeQuestion(
@@ -491,13 +510,13 @@ const MainApp: React.FC = () => {
                     {!isUnlocked ? (
                       <>
                         <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Representation Ready</h2>
-                        <p className="text-slate-400 font-bold mb-10">Your statutory response is prepared.</p>
+                        <p className="text-slate-400 font-bold mb-10">Your formal appeal to the parking operator is prepared.</p>
                         <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
                       </>
                     ) : (
                       <>
                         <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
-                        <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Representation')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 mx-auto"><i className="fas fa-file-pdf"></i> Download Response</button>
+                        <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 mx-auto"><i className="fas fa-file-pdf"></i> Download Response</button>
                       </>
                     )}
                   </div>

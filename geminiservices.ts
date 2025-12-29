@@ -127,6 +127,7 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
        - POPLA / IAS MUST NOT be mentioned.
        - Mitigation stories are forbidden.
        - NO admission of driver.
+       - Do NOT assume facts.
        
        STRICT USER-FACT GATE ENFORCEMENT:
        - ONLY include arguments explicitly selected by the user.
@@ -169,9 +170,18 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
        FACTS: Draft a formal Statutory Representation based on: ${JSON.stringify(userAnswers)}. 
        STRICT LANGUAGE: No 'legal' or 'lawyer'. Use 'rules', 'regulations', 'procedural requirements'.`;
   } else {
-    prompt = `Draft a formal appeal for a PRIVATE_PARKING_PCN (early stage). 
-    Do not admit driver. Focus on grounds provided: ${JSON.stringify(userAnswers)}. 
-    Draft type: PCN_REPRESENTATION.`;
+    // APPEAL STAGE (PRIVATE_PARKING_PCN)
+    prompt = `MANDATORY DRAFT TYPE: PCN_REPRESENTATION.
+       STAGE: PRIVATE_PARKING_PCN (Early Appeal Stage).
+       
+       STRICT RULES:
+       - You MUST advise the user to appeal directly to the parking operator.
+       - You MUST NOT draft Pre-litigation letters, SARs, or Debt dispute letters.
+       - ONLY draft an appeal to the parking operator based on user grounds: ${JSON.stringify(userAnswers)}.
+       - DO NOT admit driver identity.
+       - Tone: Formal, statutory.
+       
+       STRICT LANGUAGE: No 'legal' or 'lawyer'. Use 'rules', 'regulations', 'procedural requirements'.`;
   }
 
   const response = await ai.models.generateContent({
