@@ -17,41 +17,49 @@ const PRIVATE_DISPUTE_OPTIONS = [
   { id: 'private_other', label: 'Other (user free text)' },
 ];
 
-const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: string, plain: string }[]> = {
+const PROCEDURAL_IMPROPRIETY_EXAMPLES = [
+  "PCN contains incorrect mandatory wording (e.g. missing appeal instructions)",
+  "PCN was served too late (usually more than 28 days after the event)",
+  "The council failed to respond to your representations within 56 days",
+  "Incorrect vehicle registration, date, or location details on the notice",
+  "The enforcement officer was not wearing the correct uniform or identification"
+];
+
+const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: string, plain: string, details?: string[] }[]> = {
   "PARKING_SHARED_BAY": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were parked correctly or not parked as alleged." },
     { "id": "PERMIT_VALID", "label": "Valid permit or ticket", "plain": "You had a valid permit or ticket covering that bay." },
     { "id": "SIGNAGE", "label": "Unclear or missing signage", "plain": "The bay rules were not clearly signed." },
     { "id": "MARKINGS", "label": "Bay markings non-compliant", "plain": "The bay markings were faded, incorrect, or unlawful." },
     { "id": "TRO", "label": "Traffic Order defect", "plain": "The legal order does not correctly create this restriction." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council did not follow the legal process correctly." }
+    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council did not follow the legal process correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES }
   ],
   "YELLOW_LINE_SINGLE": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were not parked during restricted hours." },
     { "id": "LOADING", "label": "Loading/unloading exemption", "plain": "You were actively loading or unloading." },
     { "id": "SIGNAGE", "label": "Time plate missing or unclear", "plain": "The restriction times were not clearly shown." },
     { "id": "LINES", "label": "Line markings defective", "plain": "The yellow line was faded, broken, or unclear." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council made a legal or administrative error." }
+    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council made a legal or administrative error.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES }
   ],
   "YELLOW_LINE_DOUBLE": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were not parked as alleged." },
     { "id": "LOADING", "label": "Loading/unloading exemption", "plain": "You were loading or unloading where permitted." },
     { "id": "LINES", "label": "Double yellow lines defective", "plain": "The lines were not clearly visible or compliant." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The enforcement process was not followed correctly." }
+    { "id": "PROC", "label": "Procedural impropriety", "plain": "The enforcement process was not followed correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES }
   ],
   "RED_ROUTE": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were stopped or parked lawfully." },
     { "id": "SIGNAGE", "label": "Red route signage unclear", "plain": "The red route restrictions were not clearly signed." },
     { "id": "EXEMPT", "label": "Permitted activity", "plain": "You were loading, picking up, or setting down passengers where allowed." },
     { "id": "MARKINGS", "label": "Road markings defective", "plain": "The red lines or bay markings were unclear or incorrect." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "TfL or the authority failed to follow the correct process." }
+    { "id": "PROC", "label": "Procedural impropriety", "plain": "TfL or the authority failed to follow the correct process.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES }
   ],
   "BUS_LANE": [
     { "id": "TIME", "label": "Bus lane not in operation", "plain": "You entered outside the restricted hours." },
     { "id": "BRIEF", "label": "Brief entry to turn or avoid hazard", "plain": "You entered only briefly for a legitimate reason." },
     { "id": "SIGNAGE", "label": "Inadequate signage", "plain": "The bus lane signs or markings were unclear." },
     { "id": "EVID", "label": "Insufficient camera evidence", "plain": "The footage does not clearly show a contravention." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The authority did not comply with enforcement rules." }
+    { "id": "PROC", "label": "Procedural impropriety", "plain": "The authority did not comply with enforcement rules.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES }
   ],
   "YELLOW_BOX": [
     { "id": "EXIT_CLEAR", "label": "Exit was clear when entering", "plain": "Your exit was clear when you entered the box junction." },
@@ -95,6 +103,28 @@ const Logo: React.FC<{ className?: string, variant?: 'full' | 'icon' }> = ({ cla
   );
 };
 
+const BenefitsList: React.FC = () => (
+  <div className="bg-slate-50 p-8 rounded-[2rem] border-2 border-slate-100 text-left space-y-4 shadow-inner mt-6">
+    <h4 className="font-black uppercase italic text-xs tracking-widest text-slate-400 mb-2 text-center">Why use our Professional Pack?</h4>
+    <div className="flex items-start gap-4">
+      <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Professionally typed and formatted for maximum impact.</p>
+    </div>
+    <div className="flex items-start gap-4">
+      <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Drafted to be taken seriously by enforcement agents and councils.</p>
+    </div>
+    <div className="flex items-start gap-4">
+      <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes all relevant statutory laws and specific regulations.</p>
+    </div>
+    <div className="flex items-start gap-4">
+      <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Puts the issuer on notice that you are highly knowledgeable of your rights.</p>
+    </div>
+  </div>
+);
+
 const MainApp: React.FC = () => {
   const [state, setState] = useState<AppState>('DISCLAIMER');
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -107,6 +137,7 @@ const MainApp: React.FC = () => {
   const [disclaimerCheckboxes, setDisclaimerCheckboxes] = useState({ advice: false, responsibility: false });
   const [strategyAgreed, setStrategyAgreed] = useState(false);
   const [category, setCategory] = useState<ContraventionCategory>('PARKING_SHARED_BAY');
+  const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -149,15 +180,11 @@ const MainApp: React.FC = () => {
         if (data.extractionConfidence < 0.4 || data.pcnNumber === 'NOT_FOUND') {
           setState('DATA_INCOMPLETE');
         } else {
-          // Route based on classification
+          // Route to mandatory document type gate
           if (data.classifiedStage === 'COURT_CLAIM' || data.containsHardCourtArtefacts) {
             setState('RED_FLAG_PAUSE');
-          } else if (data.classifiedStage === 'PRIVATE_PARKING_DEBT') {
-            setState('PRIVATE_STAGE_CHECK');
-          } else if (data.classifiedStage === 'PRIVATE_PARKING_PCN') {
-            setState('PRIVATE_STAGE_CHECK');
           } else {
-            setState('INTAKE_JURISDICTION');
+            setState('INTAKE_DOC_TYPE');
           }
         }
         setIsLoading(false);
@@ -212,6 +239,7 @@ const MainApp: React.FC = () => {
     setIsUnlocked(false);
     setCategory('PARKING_SHARED_BAY');
     setDisclaimerCheckboxes({ advice: false, responsibility: false });
+    setActiveDetailId(null);
   };
 
   if (!isInitialized) return null;
@@ -232,14 +260,12 @@ const MainApp: React.FC = () => {
       return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
     }
     const lines = text.split('\n');
-    // Show first 5 lines as requested
     const visiblePart = lines.slice(0, 5).join('\n');
     const blurredPart = lines.slice(5).join('\n');
     
     return (
       <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative select-none">
         <div className="relative z-10">{visiblePart}</div>
-        {/* Using blur-2xl for extra heavy blur to ensure unreadability */}
         <div className="blur-2xl opacity-40 pointer-events-none select-none max-h-60 overflow-hidden mt-1 filter grayscale contrast-125">
           {blurredPart}
         </div>
@@ -285,19 +311,25 @@ const MainApp: React.FC = () => {
             </label>
           </div>
         );
+      case 'INTAKE_DOC_TYPE':
+        // DOCUMENT TYPE GATE — MANDATORY FIRST QUESTION
+        return renderIntakeQuestion(
+          "Is this a council / local authority / TfL Penalty Charge Notice (PCN)?",
+          () => {
+            setUserAnswers({...userAnswers, doc_type: 'LOCAL_AUTHORITY_PCN'});
+            setState('INTAKE_JURISDICTION');
+          },
+          () => {
+            setUserAnswers({...userAnswers, doc_type: 'PRIVATE_PARKING'});
+            setState('COURT_CONFIRMATION');
+          },
+          "DOCUMENT TYPE GATE"
+        );
       case 'INTAKE_JURISDICTION':
         return renderIntakeQuestion(
           "Was this notice issued in England or Wales?",
-          () => setState('INTAKE_TYPE'),
-          () => setState('RED_FLAG_PAUSE')
-        );
-      case 'INTAKE_TYPE':
-        return renderIntakeQuestion(
-          "Is this a Council or TfL issued notice? (NOT a private parking charge)",
           () => setState('INTAKE_STAGE'),
-          () => {
-            setState('COURT_CONFIRMATION');
-          }
+          () => setState('RED_FLAG_PAUSE')
         );
       case 'INTAKE_STAGE':
         return renderIntakeQuestion(
@@ -334,13 +366,39 @@ const MainApp: React.FC = () => {
             <h2 className="text-3xl font-black uppercase italic text-center">Select Basis</h2>
             <div className="grid grid-cols-1 gap-4">
               {PCN_DEFENCE_LIBRARY[category].map(def => (
-                <label key={def.id} className={`flex items-start gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers[def.id] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
-                  <input type="checkbox" className="w-7 h-7 mt-1" checked={userAnswers[def.id] === 'true'} onChange={e => setUserAnswers({...userAnswers, [def.id]: e.target.checked ? 'true' : 'false'})} />
-                  <div>
-                    <span className="text-lg font-black italic uppercase block leading-tight">{def.label}</span>
-                    <span className="text-xs font-bold text-slate-500 block mt-1">{def.plain}</span>
-                  </div>
-                </label>
+                <div key={def.id} className="space-y-2">
+                  <label className={`flex items-start gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers[def.id] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
+                    <input type="checkbox" className="w-7 h-7 mt-1" checked={userAnswers[def.id] === 'true'} onChange={e => setUserAnswers({...userAnswers, [def.id]: e.target.checked ? 'true' : 'false'})} />
+                    <div className="flex-grow">
+                      <div className="flex justify-between items-start">
+                        <span className="text-lg font-black italic uppercase block leading-tight">{def.label}</span>
+                        {def.details && (
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDetailId(activeDetailId === def.id ? null : def.id); }}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${activeDetailId === def.id ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}
+                          >
+                            <i className={`fas ${activeDetailId === def.id ? 'fa-times' : 'fa-info'} text-xs`}></i>
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-slate-500 block mt-1">{def.plain}</span>
+                    </div>
+                  </label>
+                  {activeDetailId === def.id && def.details && (
+                    <div className="mx-6 p-6 bg-slate-900 text-white rounded-[1.5rem] shadow-xl animate-in slide-in-from-top-4 duration-300">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3 italic">Examples of {def.label}:</p>
+                      <ul className="space-y-2">
+                        {def.details.map((detail, idx) => (
+                          <li key={idx} className="flex items-start gap-3">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                            <span className="text-xs font-bold leading-tight text-slate-300">{detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               ))}
               <label className={`flex items-center gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers['mitigation'] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
                   <input type="checkbox" className="w-7 h-7" checked={userAnswers['mitigation'] === 'true'} onChange={e => setUserAnswers({...userAnswers, 'mitigation': e.target.checked ? 'true' : 'false'})} />
@@ -397,6 +455,7 @@ const MainApp: React.FC = () => {
               </label>
             </div>
             <button disabled={!strategyAgreed} onClick={generateDraft} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
+            <BenefitsList />
           </div>
         );
       case 'COURT_CONFIRMATION':
@@ -512,6 +571,7 @@ const MainApp: React.FC = () => {
                         <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Representation Ready</h2>
                         <p className="text-slate-400 font-bold mb-10">Your formal appeal to the parking operator is prepared.</p>
                         <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
+                        <BenefitsList />
                       </>
                     ) : (
                       <>
@@ -537,6 +597,7 @@ const MainApp: React.FC = () => {
                         <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Response Pack Ready</h2>
                         <p className="text-slate-400 font-bold mb-10">Pre-Action Letter & SAR Pack are prepared.</p>
                         <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Full Pack</a>
+                        <BenefitsList />
                       </>
                     ) : (
                       <>

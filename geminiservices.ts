@@ -93,8 +93,10 @@ export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Recor
       ${yellowBoxOverride}
 
       Provide a proposed defence strategy in PLAIN ENGLISH. 
-      DO NOT cite specific laws or regulations yet.
-      Focus on the logical argument for why the charge should be cancelled.
+      STRICT RULE: BE INTENTIONALLY VAGUE. 
+      DO NOT cite specific laws, regulations, or technical legal terms (e.g., DO NOT use "de minimis", "POFA", "statutory", "vicarious liability"). 
+      Instead, describe the logic as a CONCEPTUAL argument (e.g., "argue about the time spent", "challenge the visibility of the rules", "question how the contract was formed"). 
+      Focus on the logical argument for why the charge should be cancelled without giving away the formal legal terminology.
       Tone: Formal, helpful, determined.` }]
     }],
     config: {

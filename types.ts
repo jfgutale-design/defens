@@ -58,6 +58,7 @@ export type AppState =
   | 'UPLOAD' 
   | 'ANALYZING' 
   | 'DATA_INCOMPLETE'
+  | 'INTAKE_DOC_TYPE'
   | 'INTAKE_JURISDICTION'
   | 'INTAKE_TYPE'
   | 'INTAKE_STAGE'
