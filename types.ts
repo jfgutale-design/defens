@@ -1,7 +1,7 @@
 
 export type NoticeType = 'council_pcn' | 'private_parking_charge' | 'unknown';
 export type CaseStage = 'EARLY' | 'LATE' | 'RED_FLAG';
-export type DraftType = 'PCN_REPRESENTATION' | 'PRIVATE_PRE_ACTION_SAR_PACK';
+export type DraftType = 'PCN_REPRESENTATION' | 'PRIVATE_PRE_ACTION_SAR_PACK' | 'ADJUDICATOR_APPEAL';
 
 export type ClassifiedStage = 
   | 'COUNCIL_PCN'
@@ -63,6 +63,13 @@ export type AppState =
   | 'INTAKE_TYPE'
   | 'INTAKE_STAGE'
   | 'INTAKE_APPEAL_STATUS'
+  | 'PRIVATE_INTAKE_STAGE'
+  | 'PRIVATE_INTAKE_DRIVER'
+  | 'PRIVATE_INTAKE_LOCATION'
+  | 'PRIVATE_ADJUDICATOR_CHECK'
+  | 'PRIVATE_BRANCH_FIRST_APPEAL'
+  | 'PRIVATE_BRANCH_ADJUDICATOR_APPEAL'
+  | 'PRIVATE_BRANCH_PRE_LIT_SAR'
   | 'CONTRAVENTION_SELECT'
   | 'DEFENCE_SELECT'
   | 'EXPLANATION_INPUT'

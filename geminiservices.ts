@@ -74,30 +74,26 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
 export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<{ summary: string, rationale: string }> => {
   const ai = getAI();
   
-  const isYellowBox = userAnswers['contravention_category'] === 'YELLOW_BOX';
-  const yellowBoxOverride = isYellowBox ? `
-    LEGAL FRAMING OVERRIDE — MOVING TRAFFIC (YELLOW_BOX):
-    - DO NOT describe the behaviour as "parking".
-    - DO NOT refer to contracts, breach of contract, or agreement to terms.
-    - DESCRIBE the allegation ONLY as: "entering and stopping in a box junction when prohibited".
-    - ARGUMENTS ARE LIMITED TO: exit was clear when entering, stop caused by another vehicle/obstruction, stop was momentary (de minimis) in the context of stopping (not parking), markings or signage non-compliant, or evidence does not show exit blocked at entry.
-  ` : "";
-
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: [{
-      parts: [{ text: `Based on the following case:
+      parts: [{ text: `Based on:
       DATA: ${JSON.stringify(pcnData)}
       USER_ANSWERS: ${JSON.stringify(userAnswers)}
       
-      ${yellowBoxOverride}
-
-      Provide a proposed defence strategy in PLAIN ENGLISH. 
-      STRICT RULE: BE INTENTIONALLY VAGUE. 
-      DO NOT cite specific laws, regulations, or technical legal terms (e.g., DO NOT use "de minimis", "POFA", "statutory", "vicarious liability"). 
-      Instead, describe the logic as a CONCEPTUAL argument (e.g., "argue about the time spent", "challenge the visibility of the rules", "question how the contract was formed"). 
-      Focus on the logical argument for why the charge should be cancelled without giving away the formal legal terminology.
-      Tone: Formal, helpful, determined.` }]
+      Provide a proposed defence strategy summary in PLAIN ENGLISH for a UK parking ticket appeal.
+      
+      TASK:
+      1. Write a 2-3 sentence 'rationale' that summarizes the core argument based on the user's selected reasons (e.g. appeal_reasons, adjudicator_reasons, or council grounds). 
+      2. If they mention signage, mention the failure to communicate terms. If they mention keeper liability, mention statutory non-compliance.
+      
+      STRICT RULES:
+      - BE INTENTIONALLY VAGUE. 
+      - Do NOT use legal acronyms (e.g. NO 'POFA', 'TMA', 'IAS').
+      - Do NOT use section numbers.
+      - Focus on conceptual logic (e.g., 'The charge is invalid because the operator failed to establish a clear contract').
+      - Keep it helpful, firm, and determined.
+      - 'summary' should be a punchy title like "Procedural Challenge" or "Contractual Dispute".` }]
     }],
     config: {
       responseMimeType: "application/json",
@@ -116,74 +112,35 @@ export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Recor
 
 export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<LetterDraft> => {
   const ai = getAI();
-  const isPrivateDebt = pcnData.classifiedStage === 'PRIVATE_PARKING_DEBT';
-  const isYellowBox = userAnswers['contravention_category'] === 'YELLOW_BOX';
-
+  const isPrivate = userAnswers.doc_type === 'PRIVATE_PARKING';
   let prompt = "";
-  if (isPrivateDebt) {
-    prompt = `MANDATORY DRAFT TYPE: PRIVATE_PRE_ACTION_SAR_PACK.
-       STAGE: PRIVATE_PARKING_DEBT (STRICT LOCK).
-       
-       STRICT RULES:
-       - APPEALS ARE FORBIDDEN.
-       - POPLA / IAS MUST NOT be mentioned.
-       - Mitigation stories are forbidden.
-       - NO admission of driver.
-       - Do NOT assume facts.
-       
-       STRICT USER-FACT GATE ENFORCEMENT:
-       - ONLY include arguments explicitly selected by the user.
-       - IF 'private_signage' is NOT selected -> YOU MUST NOT mention signage.
-       - IF 'private_no_contract' is NOT selected -> YOU MUST NOT mention contract formation.
-       - IF 'private_not_driver' is NOT selected -> YOU MUST NOT mention keeper vs driver liability.
-       - IF 'private_permission' is NOT selected -> YOU MUST NOT mention permission/permit.
-       - IF 'private_excessive' is NOT selected -> YOU MUST NOT mention excessive charges.
-       
-       OUTPUT:
-         1. A Pre-Litigation Response Letter (in 'letter' field) disputing the debt strictly based on user selected grounds.
-         2. A Subject Access Request (SAR) (in 'sarLetter' field).
-       
-       STRICT LANGUAGE: Use 'rules', 'regulations', 'procedural requirements'. NEVER use 'legal' or 'lawyer'.
-       FACTS: ${JSON.stringify({pcnData, userAnswers})}.`;
-  } else if (pcnData.noticeType === 'council_pcn' || pcnData.classifiedStage === 'COUNCIL_PCN') {
-    const yellowBoxOverride = isYellowBox ? `
-      LEGAL FRAMING OVERRIDE — MOVING TRAFFIC (YELLOW_BOX):
-      - DO NOT describe the behaviour as "parking".
-      - DO NOT refer to contracts, breach of contract, or agreement to terms.
-      - DESCRIBE the allegation ONLY as: "entering and stopping in a box junction when prohibited".
-      - ARGUMENTS ARE LIMITED TO: exit was clear when entering, stop caused by another vehicle/obstruction, stop was momentary (de minimis) in the context of stopping (not parking), markings or signage non-compliant, or evidence does not show exit blocked at entry.
-    ` : "";
 
-    prompt = `HARD LOCK — DRAFT TYPE BY DOCUMENT TYPE:
-       CONDITION: This is a LOCAL_AUTHORITY_PCN (Council/TfL).
-       MANDATORY DRAFT TYPE: PCN_REPRESENTATION.
-       
-       STRICT PROHIBITIONS:
-       - You MUST NOT dispute a “debt”.
-       - You MUST NOT mention “contracts” or “breach of contract”.
-       - You MUST NOT include “Pre-Action Protocol” language.
-       - You MUST NOT include a “Subject Access Request” (SAR).
-       
-       MANDATORY TERMINOLOGY:
-       - Use statutory PCN language only (e.g., “Representations”, “Appeal”).
-       
-       ${yellowBoxOverride}
-
-       FACTS: Draft a formal Statutory Representation based on: ${JSON.stringify(userAnswers)}. 
-       STRICT LANGUAGE: No 'legal' or 'lawyer'. Use 'rules', 'regulations', 'procedural requirements'.`;
+  if (isPrivate) {
+    if (userAnswers.private_stage === 'APPEAL_STAGE') {
+      prompt = `DRAFT_TYPE: PRIVATE_PARKING_APPEAL_LETTER. 
+      RULES: Appeal to parking company ONLY. NO debt language. NO SAR.
+      REASONS: ${userAnswers.appeal_reasons}. 
+      USER_TEXT: ${userAnswers.appeal_explanation}. 
+      DATA: ${JSON.stringify(pcnData)}.`;
+    } else if (userAnswers.adjudicator_check === 'NO') {
+      prompt = `DRAFT_TYPE: ADJUDICATOR_APPEAL (POPLA/IAS).
+      RULES: Draft adjudicator appeal only. NO SAR.
+      REASONS: ${userAnswers.adjudicator_reasons}.
+      USER_TEXT: ${userAnswers.adjudicator_explanation}.
+      DATA: ${JSON.stringify(pcnData)}.`;
+    } else {
+      prompt = `DRAFT_TYPE: PRIVATE_PRE_ACTION_SAR_PACK.
+      RULES: PRE-ACTION RESPONSE AND SAR ONLY. NO appeal language.
+      REASONS: ${userAnswers.debt_reasons}.
+      USER_TEXT: ${userAnswers.debt_explanation}.
+      DATA: ${JSON.stringify(pcnData)}.`;
+    }
   } else {
-    // APPEAL STAGE (PRIVATE_PARKING_PCN)
-    prompt = `MANDATORY DRAFT TYPE: PCN_REPRESENTATION.
-       STAGE: PRIVATE_PARKING_PCN (Early Appeal Stage).
-       
-       STRICT RULES:
-       - You MUST advise the user to appeal directly to the parking operator.
-       - You MUST NOT draft Pre-litigation letters, SARs, or Debt dispute letters.
-       - ONLY draft an appeal to the parking operator based on user grounds: ${JSON.stringify(userAnswers)}.
-       - DO NOT admit driver identity.
-       - Tone: Formal, statutory.
-       
-       STRICT LANGUAGE: No 'legal' or 'lawyer'. Use 'rules', 'regulations', 'procedural requirements'.`;
+    // Council flow
+    prompt = `DRAFT_TYPE: COUNCIL_PCN_REPRESENTATION.
+    RULES: Formal statutory representation. Use only selected grounds.
+    ANSWERS: ${JSON.stringify(userAnswers)}.
+    DATA: ${JSON.stringify(pcnData)}.`;
   }
 
   const response = await ai.models.generateContent({
@@ -194,15 +151,15 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          draftType: { type: Type.STRING, enum: ['PCN_REPRESENTATION', 'PRIVATE_PRE_ACTION_SAR_PACK'] },
+          draftType: { type: Type.STRING },
           letter: { type: Type.STRING },
           sarLetter: { type: Type.STRING, nullable: true },
-          verificationStatus: { type: Type.STRING, enum: ['VERIFIED', 'BLOCKED_PREVIEW_ONLY'] },
+          verificationStatus: { type: Type.STRING },
           sourceCitations: { type: Type.ARRAY, items: { type: Type.STRING } },
           evidenceChecklist: { type: Type.ARRAY, items: { type: Type.STRING } },
           rationale: { type: Type.STRING }
         },
-        required: ["draftType", "letter", "verificationStatus", "sourceCitations", "evidenceChecklist", "rationale"]
+        required: ["letter", "verificationStatus", "sourceCitations", "evidenceChecklist", "rationale"]
       }
     }
   });

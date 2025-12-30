@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import { executePass1Extraction, executePass2And3Drafting, generatePlainStrategy } from './geminiservices';
@@ -6,16 +5,6 @@ import { PCNData, AppState, LetterDraft, StrongestClaim, NoticeType, Contraventi
 
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/00w8wQ1lggCXayYgy1ebu0a";
 const SUPPORT_EMAIL = "support@defens.co.uk";
-
-const PRIVATE_DISPUTE_OPTIONS = [
-  { id: 'private_signage', label: 'No signage / unclear signage' },
-  { id: 'private_no_contract', label: 'No contract formed' },
-  { id: 'private_not_driver', label: 'Not the driver' },
-  { id: 'private_no_keeper_liability', label: 'Keeper liability not established (POFA Schedule 4)' },
-  { id: 'private_permission', label: 'Paid / authorised parking' },
-  { id: 'private_blue_badge', label: 'Blue Badge / Equality Act 2010' },
-  { id: 'private_other', label: 'Other (user free text)' },
-];
 
 const PROCEDURAL_IMPROPRIETY_EXAMPLES = [
   "PCN contains incorrect mandatory wording (e.g. missing appeal instructions)",
@@ -64,9 +53,9 @@ const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: st
   "YELLOW_BOX": [
     { "id": "EXIT_CLEAR", "label": "Exit was clear when entering", "plain": "Your exit was clear when you entered the box junction." },
     { "id": "FORCED", "label": "Stop caused by another vehicle", "plain": "Another vehicle or obstruction caused you to stop in the box." },
-    { "id": "MINIMIS", "label": "Momentary stop (De Minimis)", "plain": "The stop was momentary and insignificant in the context of the traffic flow." },
+    { "id": "MINIMIS", "label": "Momentary stop (De Minimis)", "plain": "The stop was momentary and insignificant in the traffic flow." },
     { "id": "MARKINGS", "label": "Markings or signage non-compliant", "plain": "The box markings or regulatory signs were incorrect or unclear." },
-    { "id": "EVID", "label": "Evidence does not show exit blocked at entry", "plain": "The evidence fails to prove the exit was blocked at the point of entry." }
+    { "id": "EVID", "label": "Evidence does not show exit blocked at entry", "plain": "The evidence fails to prove the exit was blocked at entry." }
   ],
   "WRONG_TURN_NO_ENTRY": [
     { "id": "SIGNAGE", "label": "Inadequate or obscured signage", "plain": "The restriction signs were unclear or hidden." },
@@ -78,26 +67,14 @@ const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: st
 };
 
 const Logo: React.FC<{ className?: string, variant?: 'full' | 'icon' }> = ({ className = "h-12 w-auto", variant = 'full' }) => {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) {
-    return (
-      <div className={`${className} flex items-center gap-3`}>
-        <svg viewBox="0 0 100 100" className="h-full w-auto drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
-          <rect x="25" y="10" width="6" height="40" transform="rotate(-45 28 30)" fill="#78350f" rx="2" />
-          <rect x="69" y="10" width="6" height="40" transform="rotate(45 72 30)" fill="#78350f" rx="2" />
-          <path d="M15 15 Q30 15 30 35 Q15 35 15 15" fill="#94a3b8" />
-          <path d="M85 15 Q70 15 70 35 Q85 35 85 15" fill="#94a3b8" />
-          <path d="M50 15 L85 30 Q85 75 50 95 Q15 75 15 30 Z" fill="#0f172a" stroke="#f59e0b" strokeWidth="4" />
-          <path d="M50 22 L78 34 Q78 70 50 86 Q22 70 22 34 Z" fill="none" stroke="#f59e0b" strokeWidth="1" opacity="0.5" />
-          <text x="50" y="68" fontFamily="Georgia, serif" fontWeight="900" fontSize="42" fill="#f59e0b" textAnchor="middle">D</text>
-        </svg>
-        {variant === 'full' && <span className="font-black italic uppercase tracking-tighter text-2xl text-white ml-2">DEFENS</span>}
-      </div>
-    );
-  }
   return (
-    <div className="flex items-center gap-4">
-      <img src="logo.png" alt="DEFENS Logo" className={className} onError={() => setImgError(true)} />
+    <div className="flex items-center gap-3">
+      <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
+        <rect x="25" y="10" width="6" height="40" transform="rotate(-45 28 30)" fill="#78350f" rx="2" />
+        <rect x="69" y="10" width="6" height="40" transform="rotate(45 72 30)" fill="#78350f" rx="2" />
+        <path d="M50 15 L85 30 Q85 75 50 95 Q15 75 15 30 Z" fill="#0f172a" stroke="#f59e0b" strokeWidth="4" />
+        <text x="50" y="68" fontFamily="Inter, sans-serif" fontWeight="900" fontSize="42" fill="#f59e0b" textAnchor="middle">D</text>
+      </svg>
       {variant === 'full' && <span className="font-black italic uppercase tracking-tighter text-2xl text-white">DEFENS</span>}
     </div>
   );
@@ -112,15 +89,11 @@ const BenefitsList: React.FC = () => (
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
-      <p className="text-xs font-bold text-slate-700 leading-tight">Drafted to be taken seriously by enforcement agents and councils.</p>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes relevant statutory laws and specific regulations.</p>
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
-      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes all relevant statutory laws and specific regulations.</p>
-    </div>
-    <div className="flex items-start gap-4">
-      <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
-      <p className="text-xs font-bold text-slate-700 leading-tight">Puts the issuer on notice that you are highly knowledgeable of your rights.</p>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Puts the issuer on notice that you are knowledgeable of your rights.</p>
     </div>
   </div>
 );
@@ -179,13 +152,10 @@ const MainApp: React.FC = () => {
         setPcnData(data);
         if (data.extractionConfidence < 0.4 || data.pcnNumber === 'NOT_FOUND') {
           setState('DATA_INCOMPLETE');
+        } else if (data.classifiedStage === 'COURT_CLAIM' || data.containsHardCourtArtefacts) {
+          setState('RED_FLAG_PAUSE');
         } else {
-          // Route to mandatory document type gate
-          if (data.classifiedStage === 'COURT_CLAIM' || data.containsHardCourtArtefacts) {
-            setState('RED_FLAG_PAUSE');
-          } else {
-            setState('INTAKE_DOC_TYPE');
-          }
+          setState('INTAKE_DOC_TYPE');
         }
         setIsLoading(false);
       };
@@ -196,36 +166,12 @@ const MainApp: React.FC = () => {
     }
   };
 
-  const submitExplanation = async () => {
+  const generateFullPack = async () => {
     if (!pcnData) return;
     setIsLoading(true);
-    setState('ANALYZING');
-    try {
-      const updatedAnswers = { ...userAnswers, contravention_category: category };
-      setUserAnswers(updatedAnswers);
-      const strategy = await generatePlainStrategy(pcnData, updatedAnswers);
-      setPlainStrategy(strategy);
-      setState('STRATEGY_PROPOSAL');
-    } catch (err: any) {
-      setState('EXPLANATION_INPUT');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateDraft = async () => {
-    if (!pcnData || !strategyAgreed) return;
-    setIsLoading(true);
-    setState('DRAFTING');
-    try {
-      const draft = await executePass2And3Drafting(pcnData, userAnswers);
-      setLetterDraft(draft);
-      setState('RESULT');
-    } catch (err: any) {
-      setState('UPLOAD');
-    } finally {
-      setIsLoading(false);
-    }
+    // Draft is already prepared from the strategy step, so we just move state
+    setState('RESULT');
+    setIsLoading(false);
   };
 
   const reset = () => {
@@ -244,32 +190,60 @@ const MainApp: React.FC = () => {
 
   if (!isInitialized) return null;
 
-  const renderIntakeQuestion = (question: string, onYes: () => void, onNo: () => void, header: string = "Intake Process") => (
+  const renderMultiSelect = (id: string, question: string, options: string[], nextState: AppState, min: number = 1, max: number = 3) => {
+    const currentSelections = (userAnswers[id] || "").split('|').filter(s => s.length > 0);
+    const toggle = (opt: string) => {
+      let newSelections = [...currentSelections];
+      if (newSelections.includes(opt)) {
+        newSelections = newSelections.filter(s => s !== opt);
+      } else {
+        if (newSelections.length < max) newSelections.push(opt);
+      }
+      setUserAnswers({...userAnswers, [id]: newSelections.join('|')});
+    };
+
+    return (
+      <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
+        <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter text-slate-950 leading-tight">{question}</h2>
+        <p className="text-slate-400 font-bold text-center text-xs uppercase tracking-widest">Choose between {min} and {max}</p>
+        <div className="grid grid-cols-1 gap-3">
+          {options.map(opt => (
+            <button key={opt} onClick={() => toggle(opt)} className={`p-6 rounded-[2rem] border-4 text-left font-black italic uppercase transition-all ${currentSelections.includes(opt) ? 'bg-amber-50 border-amber-500 shadow-xl text-amber-900' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+              {opt}
+            </button>
+          ))}
+        </div>
+        <button disabled={currentSelections.length < min} onClick={() => setState(nextState)} className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20">Continue</button>
+      </div>
+    );
+  };
+
+  const renderChoice = (id: string, question: string, options: { value: string, label: string }[], onChoice: (val: string) => void, helperText?: string) => (
     <div className="bg-white p-12 rounded-[4rem] shadow-2xl text-center space-y-10 animate-in slide-in-from-bottom duration-500">
-      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">{header}</h2>
-      <p className="text-slate-500 font-bold text-xl leading-tight">{question}</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <button onClick={onYes} className="bg-slate-50 py-8 rounded-[2rem] border-4 border-slate-100 font-black italic hover:border-amber-500 active:scale-95 transition-all text-center text-2xl">YES</button>
-         <button onClick={onNo} className="bg-slate-50 py-8 rounded-[2rem] border-4 border-slate-100 font-black italic hover:border-amber-500 active:scale-95 transition-all text-center text-2xl">NO</button>
+      <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">{question}</h2>
+      {helperText && <p className="text-slate-400 font-bold text-xs uppercase tracking-widest leading-relaxed">{helperText}</p>}
+      <div className="grid grid-cols-1 gap-4">
+         {options.map(opt => (
+           <button key={opt.value} onClick={() => onChoice(opt.value)} className="bg-slate-50 py-8 px-6 rounded-[2rem] border-4 border-slate-100 font-black italic hover:border-amber-500 active:scale-95 transition-all text-center text-xl uppercase">
+             {opt.label}
+           </button>
+         ))}
       </div>
     </div>
   );
 
   const renderLetterPreview = (text: string) => {
-    if (isUnlocked) {
-      return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
-    }
+    if (isUnlocked) return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
     const lines = text.split('\n');
     const visiblePart = lines.slice(0, 5).join('\n');
     const blurredPart = lines.slice(5).join('\n');
-    
     return (
       <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative select-none">
         <div className="relative z-10">{visiblePart}</div>
-        <div className="blur-2xl opacity-40 pointer-events-none select-none max-h-60 overflow-hidden mt-1 filter grayscale contrast-125">
+        <div className="blur-[16px] opacity-20 pointer-events-none select-none max-h-[400px] overflow-hidden mt-1 filter grayscale contrast-125 leading-loose">
           {blurredPart}
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent z-20 pointer-events-none"></div>
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none"></div>
       </div>
     );
   };
@@ -289,14 +263,14 @@ const MainApp: React.FC = () => {
                 <div className="space-y-6 mb-10">
                   <label className="flex items-start gap-5 cursor-pointer">
                     <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-6 h-6 rounded mt-1 accent-amber-500" />
-                    <span className="text-sm font-bold text-slate-300">I understand this is a drafting tool and not professional advice.</span>
+                    <span className="text-sm font-bold text-slate-300"> drafting tool, not professional advice.</span>
                   </label>
                   <label className="flex items-start gap-5 cursor-pointer">
                     <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-6 h-6 rounded mt-1 accent-amber-500" />
-                    <span className="text-sm font-bold text-slate-300">I am responsible for verifying all facts, procedural steps, and deadlines.</span>
+                    <span className="text-sm font-bold text-slate-300">Responsible for verifying facts and deadlines.</span>
                   </label>
                 </div>
-                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => setState('UPLOAD')} className="w-full bg-amber-500 text-slate-950 py-6 rounded-3xl font-black uppercase italic disabled:opacity-20 shadow-2xl text-2xl active:scale-95 transition-all">Proceed to Scan</button>
+                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => setState('UPLOAD')} className="w-full bg-amber-500 text-slate-950 py-6 rounded-3xl font-black uppercase italic disabled:opacity-20 shadow-2xl text-2xl active:scale-95 transition-all">Proceed</button>
             </div>
           </div>
         );
@@ -304,7 +278,7 @@ const MainApp: React.FC = () => {
         return (
           <div className="bg-white p-16 rounded-[4rem] shadow-2xl text-center border border-slate-200 animate-in zoom-in duration-500">
             <h2 className="text-4xl font-black mb-4 uppercase italic tracking-tighter text-slate-950">Scan Document</h2>
-            <p className="text-slate-500 font-bold mb-12 text-lg">Upload the first page of your PCN, parking ticket, or debt recovery letter.</p>
+            <p className="text-slate-500 font-bold mb-12 text-lg">Upload page 1 of your notice.</p>
             <label className="w-full bg-slate-950 text-white py-7 rounded-[2rem] font-black uppercase italic cursor-pointer inline-block shadow-2xl text-xl active:scale-95 transition-all">
               Select Photo
               <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
@@ -312,58 +286,134 @@ const MainApp: React.FC = () => {
           </div>
         );
       case 'INTAKE_DOC_TYPE':
-        // DOCUMENT TYPE GATE — MANDATORY FIRST QUESTION
-        return renderIntakeQuestion(
-          "Is this a council / local authority / TfL Penalty Charge Notice (PCN)?",
-          () => {
-            setUserAnswers({...userAnswers, doc_type: 'LOCAL_AUTHORITY_PCN'});
-            setState('INTAKE_JURISDICTION');
-          },
-          () => {
-            setUserAnswers({...userAnswers, doc_type: 'PRIVATE_PARKING'});
-            setState('COURT_CONFIRMATION');
-          },
-          "DOCUMENT TYPE GATE"
+        return renderChoice('doc_type', "Is this a council / local authority / TfL PCN?", 
+          [{ value: 'YES', label: 'Yes (Council/TfL)' }, { value: 'NO', label: 'No (Private Company)' }],
+          (val) => {
+            if (val === 'YES') {
+              setUserAnswers({...userAnswers, doc_type: 'LOCAL_AUTHORITY_PCN'});
+              setState('INTAKE_JURISDICTION');
+            } else {
+              setUserAnswers({...userAnswers, doc_type: 'PRIVATE_PARKING'});
+              setState('PRIVATE_INTAKE_STAGE');
+            }
+          }
         );
+
+      /* PRIVATE FLOW START */
+      case 'PRIVATE_INTAKE_STAGE':
+        return renderChoice('private_stage', "Is this still within time to appeal directly to the parking company?",
+          [{ value: 'APPEAL_STAGE', label: 'Yes, I can still appeal' }, { value: 'OUT_OF_TIME', label: 'No / Not sure' }],
+          (val) => {
+            setUserAnswers({...userAnswers, private_stage: val});
+            setState('PRIVATE_INTAKE_DRIVER');
+          }
+        );
+      case 'PRIVATE_INTAKE_DRIVER':
+        return renderChoice('driver_identity', "Were you the driver at the time?",
+          [{ value: 'YES', label: 'Yes' }, { value: 'NO_OR_NOT_SAYING', label: 'No / No comment' }],
+          (val) => {
+            setUserAnswers({...userAnswers, driver_identity: val});
+            setState('PRIVATE_INTAKE_LOCATION');
+          },
+          "You are not legally required to tell a private parking company who the driver was."
+        );
+      case 'PRIVATE_INTAKE_LOCATION':
+        return renderChoice('parking_location', "Where were you parked?",
+          [
+            { value: 'RESIDENTIAL_HOME', label: 'Home / residential development' },
+            { value: 'SUPERMARKET_RETAIL', label: 'Supermarket / retail car park' },
+            { value: 'TRAIN_STATION', label: 'Train station' },
+            { value: 'HOSPITAL', label: 'Hospital' },
+            { value: 'OTHER_PRIVATE_LAND', label: 'Other private land' }
+          ],
+          (val) => {
+            const updated: Record<string, string> = {...userAnswers, parking_location: val};
+            setUserAnswers(updated);
+            if (updated.private_stage === 'APPEAL_STAGE') {
+              setState('PRIVATE_BRANCH_FIRST_APPEAL');
+            } else {
+              setState('PRIVATE_ADJUDICATOR_CHECK');
+            }
+          },
+          "Parking at home or residential land often gives stronger rights."
+        );
+      case 'PRIVATE_ADJUDICATOR_CHECK':
+        return renderChoice('adjudicator_check', "Have you already appealed to an independent adjudicator (POPLA or IAS)?",
+          [{ value: 'NO', label: 'No' }, { value: 'YES_REJECTED', label: 'Yes, and it was rejected' }],
+          (val) => {
+            if (val === 'NO') {
+              setState('PRIVATE_BRANCH_ADJUDICATOR_APPEAL');
+            } else {
+              setState('PRIVATE_BRANCH_PRE_LIT_SAR');
+            }
+          }
+        );
+
+      case 'PRIVATE_BRANCH_FIRST_APPEAL':
+        return renderMultiSelect('appeal_reasons', "Why are you appealing?",
+          ["Signage unclear or missing", "No keeper liability", "Paid / permit / permission to park", "Grace period not applied", "Brief stop / no parking", "ANPR or timing error", "Residential parking rights", "Other"],
+          'EXPLANATION_INPUT'
+        );
+      case 'PRIVATE_BRANCH_ADJUDICATOR_APPEAL':
+        return renderMultiSelect('adjudicator_reasons', "Why should the adjudicator allow your appeal?",
+          ["No keeper liability", "Signage insufficient", "Permission / residential rights", "ANPR error", "Landowner authority missing", "Other"],
+          'EXPLANATION_INPUT'
+        );
+      case 'PRIVATE_BRANCH_PRE_LIT_SAR':
+        return renderChoice('dispute_debt', "Do you dispute this parking charge debt?",
+          [{ value: 'YES', label: 'Yes, I dispute it' }, { value: 'NO', label: 'No' }],
+          (val) => {
+            if (val === 'YES') {
+              setState('PRIVATE_DEBT_DISPUTE_CHECK'); 
+            } else {
+              setState('RED_FLAG_PAUSE');
+            }
+          }
+        );
+      case 'PRIVATE_DEBT_DISPUTE_CHECK':
+        return renderMultiSelect('debt_reasons', "Why do you dispute the debt?",
+          ["No keeper liability", "No contract formed (signage)", "Residential / landowner rights", "Charge is excessive or unfair", "Other"],
+          'EXPLANATION_INPUT'
+        );
+      /* PRIVATE FLOW END */
+
+      /* COUNCIL FLOW START */
       case 'INTAKE_JURISDICTION':
-        return renderIntakeQuestion(
-          "Was this notice issued in England or Wales?",
-          () => setState('INTAKE_STAGE'),
-          () => setState('RED_FLAG_PAUSE')
+        return renderChoice('jurisdiction', "Was this notice issued in England or Wales?",
+          [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No' }],
+          (val) => val === 'YES' ? setState('INTAKE_STAGE') : setState('RED_FLAG_PAUSE')
         );
       case 'INTAKE_STAGE':
-        return renderIntakeQuestion(
-          "Have you received court papers OR a debt recovery letter from a council agent?",
-          () => setState('RED_FLAG_PAUSE'),
-          () => setState('INTAKE_APPEAL_STATUS')
+        return renderChoice('stage', "Received court papers OR debt recovery letter from a council agent?",
+          [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No' }],
+          (val) => val === 'YES' ? setState('RED_FLAG_PAUSE') : setState('INTAKE_APPEAL_STATUS')
         );
       case 'INTAKE_APPEAL_STATUS':
-        return renderIntakeQuestion(
-          "Are you within the valid time frame to challenge or appeal this notice?",
-          () => setState('CONTRAVENTION_SELECT'),
-          () => setState('RED_FLAG_PAUSE')
+        return renderChoice('appeal_time', "Within the valid time frame to challenge?",
+          [{ value: 'YES', label: 'Yes' }, { value: 'NO', label: 'No' }],
+          (val) => val === 'YES' ? setState('CONTRAVENTION_SELECT') : setState('RED_FLAG_PAUSE')
         );
       case 'CONTRAVENTION_SELECT':
+        const councilCats: ContraventionCategory[] = ['PARKING_SHARED_BAY', 'YELLOW_LINE_SINGLE', 'YELLOW_LINE_DOUBLE', 'RED_ROUTE', 'BUS_LANE', 'YELLOW_BOX', 'WRONG_TURN_NO_ENTRY'];
         return (
           <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-10 animate-in slide-in-from-right duration-500">
-            <h2 className="text-3xl font-black uppercase italic text-center">Identify Contravention</h2>
+            <h2 className="text-3xl font-black uppercase italic text-center">Identify Basis</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(Object.keys(PCN_DEFENCE_LIBRARY) as ContraventionCategory[]).filter(c => c !== 'OTHER').map(cat => (
+              {councilCats.map(cat => (
                 <button key={cat} onClick={() => { setCategory(cat); setState('DEFENCE_SELECT'); }} className="bg-slate-50 p-8 rounded-[2rem] border-4 border-slate-100 hover:border-amber-500 text-left active:scale-95 transition-all">
                   <span className="block font-black uppercase italic text-xl leading-none">{cat.replace(/_/g, ' ')}</span>
                 </button>
               ))}
-              <button onClick={() => { setCategory('OTHER'); setState('RED_FLAG_PAUSE'); }} className="bg-slate-50 p-8 rounded-[2rem] border-4 border-slate-100 hover:border-amber-500 text-left active:scale-95 transition-all">
+              <button onClick={() => setState('RED_FLAG_PAUSE')} className="bg-slate-50 p-8 rounded-[2rem] border-4 border-slate-100 hover:border-amber-500 text-left active:scale-95 transition-all">
                 <span className="block font-black uppercase italic text-xl leading-none">OTHER</span>
               </button>
             </div>
           </div>
         );
       case 'DEFENCE_SELECT':
-        const selectedDefences = Object.entries(userAnswers).filter(([k, v]) => v === 'true' && k !== 'mitigation' && k !== 'contravention_category').map(([k]) => k);
         return (
           <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
-            <h2 className="text-3xl font-black uppercase italic text-center">Select Basis</h2>
+            <h2 className="text-3xl font-black uppercase italic text-center">Select Arguments</h2>
             <div className="grid grid-cols-1 gap-4">
               {PCN_DEFENCE_LIBRARY[category].map(def => (
                 <div key={def.id} className="space-y-2">
@@ -373,13 +423,7 @@ const MainApp: React.FC = () => {
                       <div className="flex justify-between items-start">
                         <span className="text-lg font-black italic uppercase block leading-tight">{def.label}</span>
                         {def.details && (
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDetailId(activeDetailId === def.id ? null : def.id); }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${activeDetailId === def.id ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}
-                          >
-                            <i className={`fas ${activeDetailId === def.id ? 'fa-times' : 'fa-info'} text-xs`}></i>
-                          </button>
+                          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveDetailId(activeDetailId === def.id ? null : def.id); }} className={`w-8 h-8 rounded-full flex items-center justify-center ${activeDetailId === def.id ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}><i className={`fas ${activeDetailId === def.id ? 'fa-times' : 'fa-info'} text-xs`}></i></button>
                         )}
                       </div>
                       <span className="text-xs font-bold text-slate-500 block mt-1">{def.plain}</span>
@@ -387,275 +431,132 @@ const MainApp: React.FC = () => {
                   </label>
                   {activeDetailId === def.id && def.details && (
                     <div className="mx-6 p-6 bg-slate-900 text-white rounded-[1.5rem] shadow-xl animate-in slide-in-from-top-4 duration-300">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3 italic">Examples of {def.label}:</p>
-                      <ul className="space-y-2">
-                        {def.details.map((detail, idx) => (
-                          <li key={idx} className="flex items-start gap-3">
-                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                            <span className="text-xs font-bold leading-tight text-slate-300">{detail}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-3 italic">Examples:</p>
+                      <ul className="space-y-2">{def.details.map((detail, idx) => (<li key={idx} className="flex items-start gap-3"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" /><span className="text-xs font-bold leading-tight text-slate-300">{detail}</span></li>))}</ul>
                     </div>
                   )}
                 </div>
               ))}
-              <label className={`flex items-center gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers['mitigation'] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
-                  <input type="checkbox" className="w-7 h-7" checked={userAnswers['mitigation'] === 'true'} onChange={e => setUserAnswers({...userAnswers, 'mitigation': e.target.checked ? 'true' : 'false'})} />
-                  <span className="text-lg font-black italic uppercase">Request Discretion (Mitigation)</span>
-              </label>
             </div>
-            <button 
-              disabled={selectedDefences.length === 0 && userAnswers['mitigation'] !== 'true'}
-              onClick={() => setState('EXPLANATION_INPUT')} 
-              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
-            >
-              Continue
-            </button>
+            <button disabled={!Object.entries(userAnswers).some(([k, v]) => v === 'true' && PCN_DEFENCE_LIBRARY[category].some(d => d.id === k))} onClick={() => setState('EXPLANATION_INPUT')} className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20">Continue</button>
           </div>
         );
+      /* COUNCIL FLOW END */
+
       case 'EXPLANATION_INPUT':
-        const wordCount = (userAnswers['user_explanation'] || "").trim().split(/\s+/).filter(w => w.length > 0).length;
+        const textKey = userAnswers.doc_type === 'PRIVATE_PARKING' ? 'appeal_explanation' : 'user_explanation';
+        const wordCount = (userAnswers[textKey] || "").trim().split(/\s+/).filter(w => w.length > 0).length;
         return (
           <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
             <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter">Case Explanation</h2>
-            <p className="text-slate-500 font-bold text-center leading-tight">Please explain WHY your selected basis applies to your situation.</p>
+            <p className="text-slate-500 font-bold text-center leading-tight">Explain WHY these reasons apply (max 500 words).</p>
             <div className="relative">
-              <textarea 
-                className="w-full p-8 bg-slate-50 rounded-[2.5rem] border-4 border-slate-100 focus:border-amber-500 transition-all font-bold min-h-[300px] text-lg outline-none"
-                placeholder="Type your explanation here..."
-                value={userAnswers['user_explanation'] || ""}
-                onChange={e => setUserAnswers({...userAnswers, user_explanation: e.target.value})}
-              />
-              <div className={`absolute bottom-6 right-8 font-black text-xs ${wordCount > 500 ? 'text-red-600' : 'text-slate-400'}`}>
-                {wordCount} / 500 WORDS
-              </div>
+              <textarea className="w-full p-8 bg-slate-50 rounded-[2.5rem] border-4 border-slate-100 focus:border-amber-500 transition-all font-bold min-h-[300px] text-lg outline-none" placeholder="Type here..." value={userAnswers[textKey] || ""} onChange={e => setUserAnswers({...userAnswers, [textKey]: e.target.value})} />
+              <div className={`absolute bottom-6 right-8 font-black text-xs ${wordCount > 500 ? 'text-red-600' : 'text-slate-400'}`}>{wordCount} / 500</div>
             </div>
-            <button 
-              disabled={wordCount === 0 || wordCount > 500}
-              onClick={submitExplanation}
-              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
-            >
-              Submit Explanation
-            </button>
+            <button disabled={wordCount === 0 || wordCount > 500} onClick={async () => {
+              setIsLoading(true);
+              setState('DRAFTING');
+              try {
+                // Generate strategy summary and the final draft together to allow for pre-payment preview
+                const [strat, draft] = await Promise.all([
+                  generatePlainStrategy(pcnData!, userAnswers),
+                  executePass2And3Drafting(pcnData!, userAnswers)
+                ]);
+                setPlainStrategy(strat); 
+                setLetterDraft(draft);
+                setState('STRATEGY_PROPOSAL'); 
+              } catch (err) {
+                console.error(err);
+                setState('UPLOAD');
+              } finally {
+                setIsLoading(false);
+              }
+            }} className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20">Continue</button>
           </div>
         );
+
       case 'STRATEGY_PROPOSAL':
-        return plainStrategy && (
+        return (
           <div className="bg-white p-12 rounded-[4rem] shadow-2xl text-center space-y-8 animate-in slide-in-from-bottom duration-500">
-            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950 leading-[0.85]">DEFENCE STRATEGY</h2>
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">Defence Strategy</h2>
             <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-200 text-left shadow-sm">
-               <p className="text-lg font-black uppercase italic mb-3 text-amber-600 tracking-tight">{plainStrategy.summary}</p>
-               <p className="text-slate-950 font-bold text-sm leading-relaxed whitespace-pre-wrap">{plainStrategy.rationale}</p>
+               <p className="text-lg font-black uppercase italic mb-3 text-amber-600 tracking-tight">{plainStrategy?.summary}</p>
+               <p className="text-slate-950 font-bold text-sm leading-relaxed whitespace-pre-wrap">{plainStrategy?.rationale}</p>
             </div>
+            
+            <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-slate-100 relative overflow-hidden">
+               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 text-center italic border-b border-slate-100 pb-2">PREVIEW OF YOUR DRAFTED RESPONSE</p>
+               {letterDraft && renderLetterPreview(letterDraft.letter)}
+            </div>
+
             <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100">
               <label className="flex items-center gap-4 cursor-pointer select-none">
                 <input type="checkbox" checked={strategyAgreed} onChange={e => setStrategyAgreed(e.target.checked)} className="w-6 h-6 rounded" />
-                <span className="font-black uppercase italic text-[11px] text-left text-slate-500 leading-tight">I have reviewed this strategy and wish to proceed with the drafting of my formal response.</span>
+                <span className="font-black uppercase italic text-[11px] text-left text-slate-500 leading-tight">I wish to proceed with drafting my formal response.</span>
               </label>
             </div>
-            <button disabled={!strategyAgreed} onClick={generateDraft} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
+            
+            <button disabled={!strategyAgreed} onClick={generateFullPack} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
             <BenefitsList />
           </div>
         );
-      case 'COURT_CONFIRMATION':
-        return renderIntakeQuestion(
-          "Have you received official County Court claim papers (N1 Form) for this specific reference?",
-          () => setState('RED_FLAG_PAUSE'),
-          () => {
-            setState('PRIVATE_STAGE_CHECK');
-          },
-          "Legal Status Gate"
-        );
-      case 'PRIVATE_STAGE_CHECK':
-        // STEP 1 — STAGE CHECK
-        return renderIntakeQuestion(
-          "Does the letter mention a debt recovery company, debt collection, or added fees?",
-          () => {
-            // YES = DEBT COLLECTION STAGE
-            if (pcnData) pcnData.classifiedStage = 'PRIVATE_PARKING_DEBT';
-            setState('PRIVATE_DEBT_DISPUTE_CHECK');
-          },
-          () => {
-            // NO = APPEAL STAGE
-            if (pcnData) pcnData.classifiedStage = 'PRIVATE_PARKING_PCN';
-            setState('CONTRAVENTION_SELECT');
-          },
-          "PRIVATE PARKING STAGE GATE"
-        );
-      case 'PRIVATE_DEBT_DISPUTE_CHECK':
-        // STEP 1 - DEBT CONFIRMATION (YES/NO)
-        return renderIntakeQuestion(
-          "Do you dispute this parking charge debt?",
-          () => {
-            setUserAnswers({...userAnswers, userConfirmedDebtDispute: 'true'});
-            setState('PRIVATE_DISPUTE_BASIS');
-          },
-          () => setState('RED_FLAG_PAUSE'),
-          "PRIVATE PARKING DEBT — STEP 1"
-        );
-      case 'PRIVATE_DISPUTE_BASIS':
-        // STEP 2 - DISPUTE BASIS
-        const selectedBases = PRIVATE_DISPUTE_OPTIONS.filter(opt => userAnswers[opt.id] === 'true');
-        return (
-          <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
-            <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter text-slate-950 leading-[0.85]">PRIVATE PARKING DEBT — STEP 2</h2>
-            <p className="text-slate-500 font-bold text-center leading-tight">Select your legal basis for dispute:</p>
-            <div className="grid grid-cols-1 gap-4">
-              {PRIVATE_DISPUTE_OPTIONS.map(opt => (
-                <label key={opt.id} className={`flex items-start gap-5 p-6 rounded-[2rem] border-4 cursor-pointer transition-all ${userAnswers[opt.id] === 'true' ? 'bg-amber-50 border-amber-500 shadow-xl' : 'bg-slate-50 border-slate-100'}`}>
-                  <input type="checkbox" className="w-7 h-7 mt-1" checked={userAnswers[opt.id] === 'true'} onChange={e => setUserAnswers({...userAnswers, [opt.id]: e.target.checked ? 'true' : 'false'})} />
-                  <span className="text-lg font-black italic uppercase block leading-tight">{opt.label}</span>
-                </label>
-              ))}
-            </div>
-            <button 
-              disabled={selectedBases.length === 0}
-              onClick={() => {
-                setUserAnswers({...userAnswers, userSelectedReasons: 'true'});
-                setState('PRIVATE_USER_EXPLANATION');
-              }} 
-              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
-            >
-              Continue
-            </button>
-          </div>
-        );
-      case 'PRIVATE_USER_EXPLANATION':
-        // STEP 3 - USER EXPLANATION (REQUIRED)
-        const pWordCount = (userAnswers['private_user_explanation'] || "").trim().split(/\s+/).filter(w => w.length > 0).length;
-        const canDraft = userAnswers.userConfirmedDebtDispute === 'true' && userAnswers.userSelectedReasons === 'true' && pWordCount > 0 && pWordCount <= 500;
-        
-        return (
-          <div className="bg-white p-12 rounded-[4rem] shadow-2xl space-y-8 animate-in slide-in-from-bottom duration-500">
-            <h2 className="text-3xl font-black uppercase italic text-center tracking-tighter text-slate-950 leading-[0.85]">PRIVATE PARKING DEBT — STEP 3</h2>
-            <p className="text-slate-500 font-bold text-center leading-tight">Briefly explain why the selected reason(s) apply (max 500 words).</p>
-            <div className="relative">
-              <textarea 
-                className="w-full p-8 bg-slate-50 rounded-[2.5rem] border-4 border-slate-100 focus:border-amber-500 transition-all font-bold min-h-[300px] text-lg outline-none"
-                placeholder="Type your explanation here..."
-                value={userAnswers['private_user_explanation'] || ""}
-                onChange={e => setUserAnswers({...userAnswers, private_user_explanation: e.target.value})}
-              />
-              <div className={`absolute bottom-6 right-8 font-black text-xs ${pWordCount > 500 ? 'text-red-600' : 'text-slate-400'}`}>
-                {pWordCount} / 500 WORDS
-              </div>
-            </div>
-            <button 
-              disabled={!canDraft}
-              onClick={() => {
-                setState('DRAFTING');
-                setIsLoading(true);
-                executePass2And3Drafting(pcnData!, userAnswers)
-                  .then(d => { setLetterDraft(d); setState('RESULT'); })
-                  .catch(() => setState('UPLOAD'))
-                  .finally(() => setIsLoading(false));
-              }}
-              className="w-full bg-slate-950 text-white py-8 rounded-[2.5rem] font-black uppercase italic text-2xl active:scale-95 transition-all disabled:opacity-20"
-            >
-              Submit and Draft
-            </button>
-          </div>
-        );
+
       case 'RESULT':
         if (!letterDraft) return null;
-        
-        const renderResultScreen = () => {
-          switch (letterDraft.draftType) {
-            case "PCN_REPRESENTATION":
-              return (
-                <div className="space-y-10 animate-in fade-in duration-700">
-                  <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl">
-                    {!isUnlocked ? (
-                      <>
-                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Representation Ready</h2>
-                        <p className="text-slate-400 font-bold mb-10">Your formal appeal to the parking operator is prepared.</p>
-                        <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
-                        <BenefitsList />
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
-                        <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 mx-auto"><i className="fas fa-file-pdf"></i> Download Response</button>
-                      </>
-                    )}
+        return (
+          <div className="space-y-10 animate-in fade-in duration-700">
+            <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl">
+              {!isUnlocked ? (
+                <>
+                  <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Pack Ready</h2>
+                  <p className="text-slate-400 font-bold mb-10">Formal documentation is prepared and verified.</p>
+                  <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
+                  <p className="text-slate-400 font-bold text-xs mt-4 uppercase tracking-[0.2em]">From £3.99</p>
+                  <BenefitsList />
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
+                  <div className="flex flex-wrap justify-center gap-5">
+                    <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2"><i className="fas fa-file-pdf"></i> Download Main</button>
+                    {letterDraft.sarLetter && <button onClick={() => handleDownloadPDF(letterDraft.sarLetter!, 'SAR')} className="bg-slate-800 text-white px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2">Download SAR</button>}
                   </div>
-                  <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-                    {renderLetterPreview(letterDraft.letter)}
-                  </div>
-                  <div className="text-center pt-8">
-                    <button onClick={reset} className="text-slate-400 font-black uppercase italic underline text-xs tracking-widest hover:text-amber-500 transition-colors">Start New Analysis</button>
-                  </div>
-                </div>
-              );
-            case "PRIVATE_PRE_ACTION_SAR_PACK":
-              return (
-                <div className="space-y-10 animate-in fade-in duration-700">
-                  <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl">
-                    {!isUnlocked ? (
-                      <>
-                        <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Response Pack Ready</h2>
-                        <p className="text-slate-400 font-bold mb-10">Pre-Action Letter & SAR Pack are prepared.</p>
-                        <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Full Pack</a>
-                        <BenefitsList />
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
-                        <div className="flex flex-wrap justify-center gap-5 mt-10">
-                          <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Pre_Action_Response')} className="bg-white text-slate-950 px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2"><i className="fas fa-file-pdf"></i> Download Response</button>
-                          {letterDraft.sarLetter && <button onClick={() => handleDownloadPDF(letterDraft.sarLetter!, 'SAR')} className="bg-slate-800 text-white px-10 py-5 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2"><i className="fas fa-id-card"></i> Download SAR</button>}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-                    {renderLetterPreview(letterDraft.letter)}
-                  </div>
-                  <div className="text-center pt-8">
-                    <button onClick={reset} className="text-slate-400 font-black uppercase italic underline text-xs tracking-widest hover:text-amber-500 transition-colors">Start New Analysis</button>
-                  </div>
-                </div>
-              );
-            default:
-              return null;
-          }
-        };
-        return renderResultScreen();
+                </>
+              )}
+            </div>
+            <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
+              {!isUnlocked && <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 text-center italic border-b border-slate-100 pb-2">PREVIEW OF YOUR COMPLETED DRAFT</p>}
+              {renderLetterPreview(letterDraft.letter)}
+            </div>
+            <div className="text-center pt-8"><button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs">Start Over</button></div>
+          </div>
+        );
 
       case 'RED_FLAG_PAUSE':
-        const isCourt = pcnData?.classifiedStage === 'COURT_CLAIM' || pcnData?.containsHardCourtArtefacts;
         return (
           <div className="bg-white p-16 rounded-[4rem] shadow-2xl text-center space-y-10 border-t-[12px] border-red-500 animate-in fade-in">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">
-              {isCourt ? "Court Papers Received" : "Intake Incomplete"}
-            </h2>
-            <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">
-              {isCourt 
-                ? "You have received official court papers. You MUST seek professional legal advice immediately. We cannot assist at the court stage."
-                : "You need more custom legal help. Either contact a solicitor for advice or contact us and we can arrange this for you."}
-            </p>
-            {!isCourt && <a href={`mailto:${SUPPORT_EMAIL}`} className="text-3xl font-black italic underline block">{SUPPORT_EMAIL}</a>}
-            <button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs pt-8 tracking-widest hover:text-red-500 transition-colors">Start Over</button>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Intake Incomplete</h2>
+            <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">We cannot assist with this specific stage or case type. You should seek independent legal advice immediately.</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-3xl font-black italic underline block">{SUPPORT_EMAIL}</a>
+            <button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs pt-8">Start Over</button>
           </div>
         );
       case 'ANALYZING':
       case 'DRAFTING':
         return (
-          <div className="text-center py-24 animate-pulse">
-            <div className="w-24 h-24 border-[6px] border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-10"></div>
-            <p className="font-black uppercase italic tracking-[0.3em] text-slate-950 text-lg">DEFENS Engine Working...</p>
+          <div className="text-center py-24 flex flex-col items-center">
+            <div className="w-24 h-24 border-[6px] border-amber-500 border-t-transparent rounded-full animate-spin mb-10 flex items-center justify-center">
+              <i className="fas fa-clock text-amber-500 text-4xl"></i>
+            </div>
+            <p className="font-black uppercase italic tracking-[0.3em] text-slate-950 text-lg">DEFENS Working...</p>
+            <p className="text-slate-400 font-bold text-[10px] mt-4 uppercase tracking-widest animate-pulse">Compiling Statutory Arguments</p>
           </div>
         );
       case 'DATA_INCOMPLETE':
-        return (
-          <div className="bg-white p-12 rounded-[4rem] shadow-2xl text-center space-y-10">
-            <h2 className="text-3xl font-black uppercase italic text-red-600">Scan Incomplete</h2>
-            <button onClick={() => setState('UPLOAD')} className="w-full bg-slate-950 text-white py-6 rounded-[2rem] font-black uppercase italic active:scale-95 transition-all">Try Again</button>
-          </div>
-        );
+        return <div className="text-center py-20"><h2 className="text-3xl font-black mb-8">Scan Error</h2><button onClick={() => setState('UPLOAD')} className="bg-slate-950 text-white px-8 py-4 rounded-xl">Retry Scan</button></div>;
       default:
-        return <div className="text-center py-20"><button onClick={reset} className="text-amber-500 font-black uppercase underline">Reset</button></div>;
+        return null;
     }
   };
 
@@ -666,9 +567,7 @@ const MainApp: React.FC = () => {
         {isUnlocked && <div className="bg-amber-500 text-slate-950 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest">Unlocked</div>}
       </nav>
       <main className="max-w-4xl mx-auto mt-10 px-6 flex-grow w-full">{renderContent()}</main>
-      <footer className="w-full py-16 text-center border-t border-slate-200 mt-20 bg-white opacity-40">
-          <p className="text-[11px] font-black uppercase italic tracking-widest">DEFENS UK — Answer Back.</p>
-      </footer>
+      <footer className="w-full py-16 text-center mt-20 bg-white opacity-40"><p className="text-[11px] font-black uppercase tracking-widest">DEFENS UK — Answer Back.</p></footer>
     </div>
   );
 };
