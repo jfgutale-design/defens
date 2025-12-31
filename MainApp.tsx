@@ -592,49 +592,67 @@ const MainApp: React.FC = () => {
         if (!letterDraft) return null;
         return (
           <div className="space-y-6 md:space-y-10 animate-in fade-in duration-700">
-            <div className="bg-slate-950 p-8 md:p-14 rounded-[2.5rem] md:rounded-[4rem] text-white text-center shadow-2xl relative">
+            <div className="bg-slate-950 p-8 md:p-14 rounded-[2.5rem] md:rounded-[4rem] text-white text-center shadow-2xl relative overflow-hidden">
               <div className="w-12 h-12 md:w-20 md:h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6"><i className="fas fa-check text-xl md:text-3xl"></i></div>
               <h2 className="text-xl md:text-3xl font-black mb-2 md:mb-4 italic uppercase tracking-tighter text-white">Your Appeal is Ready</h2>
-              <p className="text-slate-400 font-bold mb-6 md:mb-10 max-w-sm mx-auto text-xs">You can now copy your draft or download it as a PDF for free.</p>
+              <p className="text-slate-400 font-bold mb-6 md:mb-10 max-w-sm mx-auto text-xs">The basic draft is free to copy or download. For a professional finish, see our human check option below.</p>
               
               <div className="flex flex-wrap justify-center gap-3">
-                <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-6 py-3 rounded-[1.2rem] font-black uppercase italic text-[10px] md:text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2">
-                  <i className="fas fa-file-pdf"></i> Download PDF
+                <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal_Basic')} className="bg-white text-slate-950 px-6 py-3 rounded-[1.2rem] font-black uppercase italic text-[10px] md:text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2">
+                  <i className="fas fa-file-pdf"></i> Basic PDF
                 </button>
                 <button onClick={() => handleCopyText(letterDraft.letter)} className={`${copyFeedback ? 'bg-green-500 text-white' : 'bg-amber-500 text-slate-950'} px-6 py-3 rounded-[1.2rem] font-black uppercase italic text-[10px] md:text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 min-w-[120px] justify-center`}>
-                  <i className={`fas ${copyFeedback ? 'fa-check' : 'fa-copy'}`}></i> {copyFeedback ? 'Copied!' : 'Copy Text'}
+                  <i className={`fas ${copyFeedback ? 'fa-check' : 'fa-copy'}`}></i> {copyFeedback ? 'Copied!' : 'Copy Draft'}
                 </button>
               </div>
 
               {!isUnlocked && (
-                <div className="mt-8 md:mt-12 p-6 md:p-8 bg-slate-900 border-2 border-amber-500/30 rounded-[2rem] md:rounded-[3rem] text-left">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-500 text-slate-950 rounded-xl md:rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <i className="fas fa-user-check text-lg"></i>
+                <div className="mt-8 md:mt-12 p-6 md:p-8 bg-slate-900 border-2 border-amber-500/40 rounded-[2rem] md:rounded-[3rem] text-left relative z-10">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-10 h-10 md:w-14 md:h-14 bg-amber-500 text-slate-950 rounded-xl md:rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <i className="fas fa-user-tie text-lg md:text-2xl"></i>
                     </div>
                     <div>
-                      <h4 className="font-black uppercase italic text-amber-500 text-[10px] md:text-sm tracking-tight leading-none">Upgrade to Human Check</h4>
-                      <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Verified by our procedural experts</p>
+                      <h4 className="font-black uppercase italic text-amber-500 text-xs md:text-base tracking-tight leading-none">Professional Human Check</h4>
+                      <p className="text-[8px] md:text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Upgrade your draft — Only £3.99</p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-300 font-bold leading-relaxed mb-4 md:mb-6">
-                    Want absolute peace of mind? Our team will manually review your scan and drafted response.
-                  </p>
-                  <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full bg-amber-500 text-slate-950 py-4 rounded-xl font-black uppercase italic text-center block text-sm md:text-lg active:scale-95 transition-all shadow-lg">Professional Review — £3.99</a>
-                  <p className="text-slate-500 text-[8px] font-black uppercase text-center mt-2 md:mt-3 tracking-widest">Response within 24 hours</p>
+                  
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-start gap-3">
+                      <i className="fas fa-magic text-amber-500 text-[10px] mt-1"></i>
+                      <p className="text-[10px] md:text-xs text-slate-300 font-bold leading-snug">
+                        <span className="text-white">Full Customization:</span> We manually inject your name, address, and ticket details into the final document.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <i className="fas fa-shield-check text-amber-500 text-[10px] mt-1"></i>
+                      <p className="text-[10px] md:text-xs text-slate-300 font-bold leading-snug">
+                        <span className="text-white">Procedural Verification:</span> Our experts review your grounds to ensure they are rock-solid and relevant.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <i className="fas fa-paper-plane text-amber-500 text-[10px] mt-1"></i>
+                      <p className="text-[10px] md:text-xs text-slate-300 font-bold leading-snug">
+                        <span className="text-white">Ready-to-Send:</span> Receive a polished, final PDF directly to your inbox within 24 hours.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full bg-amber-500 text-slate-950 py-4 md:py-5 rounded-xl md:rounded-2xl font-black uppercase italic text-center block text-sm md:text-lg active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.3)]">Get Verified Pack — £3.99</a>
                 </div>
               )}
               
               <div className="mt-6 md:mt-10 pt-6 md:pt-8 border-t border-slate-800">
-                <p className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest mb-2 italic">Problem with your draft?</p>
+                <p className="text-slate-400 text-[8px] md:text-[10px] font-bold uppercase tracking-widest mb-2 italic">Need Technical Support?</p>
                 <a href={CONTACT_PAGE} target="_blank" className="text-amber-500 font-black italic uppercase text-[10px] hover:underline flex items-center justify-center gap-2 active:scale-95 transition-all">
-                  <i className="fas fa-headset"></i> Visit Contact Page
+                  <i className="fas fa-headset"></i> Contact Support
                 </a>
               </div>
             </div>
 
             <div className="bg-white p-6 md:p-14 rounded-[2.5rem] md:rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center italic border-b border-slate-100 pb-1">FORMAL DRAFT PREVIEW</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 text-center italic border-b border-slate-100 pb-1">BASIC DRAFT TEMPLATE</p>
               {renderLetterPreview(letterDraft.letter)}
             </div>
             
