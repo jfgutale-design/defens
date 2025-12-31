@@ -113,7 +113,7 @@ const BenefitsList: React.FC = () => (
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
-      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes relevant rules and specific regulations.</p>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes relevant procedural rules and specific regulations.</p>
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
@@ -320,17 +320,9 @@ const MainApp: React.FC = () => {
   );
 
   const renderLetterPreview = (text: string) => {
-    if (isUnlocked) return <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800">{text}</div>;
-    const lines = text.split('\n');
-    const visiblePart = lines.slice(0, 8).join('\n');
-    const blurredPart = lines.slice(8).join('\n');
     return (
-      <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative select-none">
-        <div className="relative z-10">{visiblePart}</div>
-        <div className="blur-[8px] opacity-40 pointer-events-none select-none max-h-[400px] overflow-hidden mt-1 filter grayscale contrast-125 leading-loose">
-          {blurredPart}
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-white via-white/90 to-transparent z-20 pointer-events-none"></div>
+      <div className="font-mono text-[14px] leading-[1.6] whitespace-pre-wrap p-4 text-slate-800 relative">
+        <div className="relative z-10">{text}</div>
       </div>
     );
   };
@@ -348,11 +340,11 @@ const MainApp: React.FC = () => {
                </p>
             </div>
             <div className="bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-lg">
-                <h3 className="text-base font-black mb-6 uppercase italic tracking-widest text-amber-400">Analysis Agreement</h3>
+                <h3 className="text-base font-black mb-6 uppercase italic tracking-widest text-amber-400">Review Agreement</h3>
                 <div className="space-y-4 mb-8">
                   <label className="flex items-start gap-4 cursor-pointer">
                     <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-5 h-5 rounded mt-0.5 accent-amber-500" />
-                    <span className="text-[12px] font-bold text-slate-300">This is an automated drafting tool, not a professional service provider.</span>
+                    <span className="text-[12px] font-bold text-slate-300">This is an automated documentation tool, not a professional service.</span>
                   </label>
                   <label className="flex items-start gap-4 cursor-pointer">
                     <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-5 h-5 rounded mt-0.5 accent-amber-500" />
@@ -589,7 +581,7 @@ const MainApp: React.FC = () => {
                   setPlainStrategy(strat); 
                   setLetterDraft(draft);
                   setHistory(prev => [...prev, 'IMAGE_EVIDENCE_CONFIRMATION']);
-                  setState('STRATEGY_PROPOSAL'); 
+                  setState('RESULT'); 
                 } catch (err) {
                   console.error(err);
                   setState('UPLOAD');
@@ -601,74 +593,56 @@ const MainApp: React.FC = () => {
           </div>
         );
 
-      case 'STRATEGY_PROPOSAL':
-        return (
-          <div className="bg-white p-12 rounded-[4rem] shadow-2xl text-center space-y-8 animate-in slide-in-from-bottom duration-500 relative">
-            <div className="absolute top-8 left-12">{renderBackButton()}</div>
-            <div className="pt-8 space-y-8">
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-950">Defence Strategy</h2>
-              <div className="bg-slate-50 p-8 rounded-[2.5rem] border-2 border-slate-200 text-left shadow-sm">
-                 <p className="text-lg font-black uppercase italic mb-3 text-amber-600 tracking-tight">{plainStrategy?.summary}</p>
-                 <p className="text-slate-950 font-bold text-sm leading-relaxed whitespace-pre-wrap">{plainStrategy?.rationale}</p>
-              </div>
-              
-              <div className="bg-slate-50 p-10 rounded-[3rem] border-2 border-slate-100 relative overflow-hidden">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 text-center italic border-b border-slate-100 pb-2">PREVIEW OF YOUR DRAFTED RESPONSE</p>
-                 {letterDraft && renderLetterPreview(letterDraft.letter)}
-              </div>
-
-              <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100">
-                <label className="flex items-center gap-4 cursor-pointer select-none">
-                  <input type="checkbox" checked={strategyAgreed} onChange={e => setStrategyAgreed(e.target.checked)} className="w-6 h-6 rounded" />
-                  <span className="font-black uppercase italic text-[11px] text-left text-slate-500 leading-tight">I wish to proceed with drafting my formal response.</span>
-                </label>
-              </div>
-              
-              <button disabled={!strategyAgreed} onClick={generateFullPack} className="w-full bg-amber-500 text-slate-950 py-6 rounded-[2rem] font-black uppercase italic text-xl active:scale-95 transition-all shadow-xl">Generate Full Pack</button>
-              <BenefitsList />
-            </div>
-          </div>
-        );
-
       case 'RESULT':
         if (!letterDraft) return null;
         return (
           <div className="space-y-10 animate-in fade-in duration-700">
             <div className="bg-slate-950 p-14 rounded-[4rem] text-white text-center shadow-2xl relative">
-              {!isUnlocked ? (
-                <>
-                  <h2 className="text-5xl font-black mb-4 italic uppercase tracking-tighter text-amber-500">Pack Ready</h2>
-                  <p className="text-slate-400 font-bold mb-10">Formal documentation is prepared and verified.</p>
-                  <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full max-w-sm bg-amber-500 text-slate-950 py-7 rounded-[2rem] font-black uppercase italic text-2xl inline-block active:scale-95 transition-all shadow-xl">Unlock Response</a>
-                  <p className="text-slate-400 font-bold text-xs mt-4 uppercase tracking-[0.2em]">From £3.99</p>
-                  <BenefitsList />
-                </>
-              ) : (
-                <>
-                  <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
-                  <h2 className="text-2xl font-black mb-10 italic uppercase tracking-tighter text-white">Your Appeal is Ready</h2>
-                  <div className="flex flex-wrap justify-center gap-4">
-                    <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-8 py-4 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2"><i className="fas fa-file-pdf"></i> Download PDF</button>
-                    <button onClick={() => handleCopyText(letterDraft.letter)} className={`${copyFeedback ? 'bg-green-500 text-white' : 'bg-amber-500 text-slate-950'} px-8 py-4 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 min-w-[140px] justify-center`}>
-                      <i className={`fas ${copyFeedback ? 'fa-check' : 'fa-copy'}`}></i> {copyFeedback ? 'Copied!' : 'Copy Text'}
-                    </button>
-                    {letterDraft.sarLetter && <button onClick={() => handleDownloadPDF(letterDraft.sarLetter!, 'SAR')} className="bg-slate-800 text-white px-8 py-4 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2"><i className="fas fa-shield-halved"></i> Download SAR</button>}
+              <div className="w-20 h-20 bg-amber-500 text-slate-950 rounded-full flex items-center justify-center mx-auto mb-6"><i className="fas fa-check text-3xl"></i></div>
+              <h2 className="text-3xl font-black mb-4 italic uppercase tracking-tighter text-white">Your Appeal is Ready</h2>
+              <p className="text-slate-400 font-bold mb-10 max-w-sm mx-auto">You can now copy your draft or download it as a PDF for free.</p>
+              
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => handleDownloadPDF(letterDraft.letter, 'Appeal')} className="bg-white text-slate-950 px-8 py-4 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2">
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
+                <button onClick={() => handleCopyText(letterDraft.letter)} className={`${copyFeedback ? 'bg-green-500 text-white' : 'bg-amber-500 text-slate-950'} px-8 py-4 rounded-[1.5rem] font-black uppercase italic text-sm active:scale-95 transition-all shadow-xl flex items-center gap-2 min-w-[140px] justify-center`}>
+                  <i className={`fas ${copyFeedback ? 'fa-check' : 'fa-copy'}`}></i> {copyFeedback ? 'Copied!' : 'Copy Text'}
+                </button>
+              </div>
+
+              {!isUnlocked && (
+                <div className="mt-12 p-8 bg-slate-900 border-2 border-amber-500/30 rounded-[3rem] text-left">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-amber-500 text-slate-950 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <i className="fas fa-user-check text-xl"></i>
+                    </div>
+                    <div>
+                      <h4 className="font-black uppercase italic text-amber-500 text-sm tracking-tight leading-none">Upgrade to Human Check</h4>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Verified by our procedural experts</p>
+                    </div>
                   </div>
-                  <p className="text-slate-500 font-bold text-[10px] mt-8 uppercase tracking-widest italic">Please verify all personal details before submission.</p>
-                  
-                  <div className="mt-8 pt-8 border-t border-slate-800">
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3 italic">Technical issue or problem with your draft?</p>
-                    <a href={CONTACT_PAGE} target="_blank" className="text-amber-500 font-black italic uppercase text-xs hover:underline flex items-center justify-center gap-2 active:scale-95 transition-all">
-                      <i className="fas fa-headset"></i> Visit Contact Page
-                    </a>
-                  </div>
-                </>
+                  <p className="text-xs text-slate-300 font-bold leading-relaxed mb-6">
+                    Want absolute peace of mind? Our team will manually review your scan and drafted response for any procedural errors or missing arguments.
+                  </p>
+                  <a href={STRIPE_PAYMENT_LINK} target="_blank" className="w-full bg-amber-500 text-slate-950 py-5 rounded-2xl font-black uppercase italic text-center block text-lg active:scale-95 transition-all shadow-lg">Professional Review — £3.99</a>
+                  <p className="text-slate-500 text-[9px] font-black uppercase text-center mt-3 tracking-widest">Response within 24 hours</p>
+                </div>
               )}
+              
+              <div className="mt-10 pt-8 border-t border-slate-800">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-3 italic">Technical issue or problem with your draft?</p>
+                <a href={CONTACT_PAGE} target="_blank" className="text-amber-500 font-black italic uppercase text-xs hover:underline flex items-center justify-center gap-2 active:scale-95 transition-all">
+                  <i className="fas fa-headset"></i> Visit Contact Page
+                </a>
+              </div>
             </div>
+
             <div className="bg-white p-14 rounded-[4.5rem] shadow-2xl relative overflow-hidden border border-slate-200">
-              {!isUnlocked && <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 text-center italic border-b border-slate-100 pb-2">PREVIEW OF YOUR COMPLETED DRAFT</p>}
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 text-center italic border-b border-slate-100 pb-2">FORMAL DRAFT PREVIEW</p>
               {renderLetterPreview(letterDraft.letter)}
             </div>
+            
             <div className="text-center pt-8"><button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs">Start Over</button></div>
           </div>
         );

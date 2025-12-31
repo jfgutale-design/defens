@@ -130,7 +130,13 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
       DATA: ${JSON.stringify(pcnData)}.`;
     } else {
       prompt = `DRAFT_TYPE: PRIVATE_PRE_ACTION_SAR_PACK.
-      RULES: PRE-ACTION RESPONSE AND SAR ONLY. NO appeal language.
+      TONE: Polite, professional, and firm (representative of professional correspondence).
+      RULES:
+      1. This is a formal dispute of an alleged debt.
+      2. Use the phrase "unreasonable conduct" instead of "harassment" when referring to further demands during a dispute.
+      3. Include a formal Subject Access Request (SAR).
+      4. PRE-EMPTIVE ID CHECK: Include a statement that since the company has already sent mail to this name and address regarding this vehicle registration, they already possess proof of identity for these purposes. Any request for further ID (passport/utility bills) will be noted as a deliberate attempt to obstruct a SAR.
+      5. Explicitly state the account is in a formal "Debt in Dispute" status and collection must be suspended for 30 days per Pre-Action Protocol.
       REASONS: ${userAnswers.debt_reasons}.
       USER_TEXT: ${userAnswers.debt_explanation}.
       DATA: ${JSON.stringify(pcnData)}.`;
