@@ -35,11 +35,11 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
           1. COUNCIL_PCN: Local Authority / TfL.
           2. PRIVATE_PARKING_PCN: Original parking operator, early stage appeal.
           3. PRIVATE_PARKING_DEBT: Triggered if sender is NOT original operator (e.g. DCBL, DRP, CST Law, Trace, Zenith) OR mentions "debt recovery", "outstanding balance", "final notice", "pre-legal", "letter before claim", "legal action".
-          4. COURT_CLAIM: Triggered if N1 form, County Court Business Centre, or claim number present.
+          4. COURT_CLAIM: Triggered if official Form N1 Claim form, County Court Business Centre, or claim number present.
           
           STRICT CLASSIFICATION RULES:
-          - If private company contractual charge, distinguish between PCN (early) and DEBT (collection).
-          - containsHardCourtArtefacts: true ONLY for official Form N1 Court Claim forms.` }
+          - If private company contractual charge, distinguish between original charge (early) and collection (debt).
+          - containsHardCourtArtefacts: true ONLY for official Form N1 Claim forms.` }
         ]
       },
       config: {
@@ -81,16 +81,16 @@ export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Recor
       DATA: ${JSON.stringify(pcnData)}
       USER_ANSWERS: ${JSON.stringify(userAnswers)}
       
-      Provide a proposed defence strategy summary in PLAIN ENGLISH for a UK parking ticket appeal.
+      Provide a proposed challenge strategy summary in PLAIN ENGLISH for a UK parking charge response.
       
       TASK:
-      1. Write a 2-3 sentence 'rationale' that summarizes the core argument based on the user's selected reasons (e.g. appeal_reasons, adjudicator_reasons, or council grounds). 
-      2. If they mention signage, mention the failure to communicate terms. If they mention keeper liability, mention statutory non-compliance.
+      1. Write a 2-3 sentence 'rationale' that summarizes the core argument based on the user's selected reasons. 
+      2. If they mention signage, mention the failure to communicate terms. If they mention keeper liability, mention procedural non-compliance.
       
       STRICT RULES:
       - BE INTENTIONALLY VAGUE. 
-      - Do NOT use legal acronyms (e.g. NO 'POFA', 'TMA', 'IAS').
-      - Do NOT use section numbers.
+      - Do NOT use specific legal acronyms (e.g. NO 'POFA', 'TMA', 'IAS').
+      - Do NOT use section numbers or reference specific laws.
       - Focus on conceptual logic (e.g., 'The charge is invalid because the operator failed to establish a clear contract').
       - Keep it helpful, firm, and determined.
       - 'summary' should be a punchy title like "Procedural Challenge" or "Contractual Dispute".` }]
@@ -138,7 +138,7 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
   } else {
     // Council flow
     prompt = `DRAFT_TYPE: COUNCIL_PCN_REPRESENTATION.
-    RULES: Formal statutory representation. Use only selected grounds.
+    RULES: Formal representation. Use only selected grounds and procedural rules.
     ANSWERS: ${JSON.stringify(userAnswers)}.
     DATA: ${JSON.stringify(pcnData)}.`;
   }

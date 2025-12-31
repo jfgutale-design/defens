@@ -9,25 +9,25 @@ const SUPPORT_EMAIL = "support@defens.co.uk";
 const CONTACT_PAGE = "https://www.defens.co.uk/contact";
 
 const PROCEDURAL_IMPROPRIETY_EXAMPLES = [
-  "PCN contains incorrect mandatory wording (e.g. missing appeal instructions)",
-  "PCN was served too late (usually more than 28 days after the event)",
+  "Notice contains incorrect mandatory wording (e.g. missing instructions)",
+  "Notice was served too late (usually more than 28 days after the event)",
   "The council failed to respond to your representations within 56 days",
   "Incorrect vehicle registration, date, or location details on the notice",
-  "The enforcement officer was not wearing the correct uniform or identification"
+  "The officer was not wearing the correct uniform or identification"
 ];
 
 const MITIGATING_DETAILS = [
   "Medical emergency (e.g. sudden illness or attending an accident)",
   "Vehicle breakdown (with recovery or repair evidence)",
   "Bereavement or urgent family crisis",
-  "Assisting a disabled or vulnerable person in an emergency",
-  "Unavoidable delay (e.g. being detained by police or emergency services)"
+  "Assisting a vulnerable person in an emergency",
+  "Unavoidable delay (e.g. being detained by emergency services)"
 ];
 
 const MITIGATING_ARG = { 
   "id": "MITIGATING", 
   "label": "Admit but give mitigating circumstances", 
-  "plain": "Choose this if you have a weak case. The issuing authority has a legal duty to consider mitigating circumstances.",
+  "plain": "Choose this if you have a weak case. The issuing authority has a duty to consider mitigating circumstances.",
   "details": MITIGATING_DETAILS
 };
 
@@ -36,9 +36,9 @@ const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: st
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were parked correctly or not parked as alleged." },
     { "id": "PERMIT_VALID", "label": "Valid permit or ticket", "plain": "You had a valid permit or ticket covering that bay." },
     { "id": "SIGNAGE", "label": "Unclear or missing signage", "plain": "The bay rules were not clearly signed." },
-    { "id": "MARKINGS", "label": "Bay markings non-compliant", "plain": "The bay markings were faded, incorrect, or unlawful." },
-    { "id": "TRO", "label": "Traffic Order defect", "plain": "The legal order does not correctly create this restriction." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council did not follow the legal process correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
+    { "id": "MARKINGS", "label": "Bay markings non-compliant", "plain": "The bay markings were faded, incorrect, or not as required." },
+    { "id": "TRO", "label": "Order defect", "plain": "The official order does not correctly create this restriction." },
+    { "id": "PROC", "label": "Procedural error", "plain": "The authority did not follow the official process correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
     MITIGATING_ARG
   ],
   "YELLOW_LINE_SINGLE": [
@@ -46,22 +46,22 @@ const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: st
     { "id": "LOADING", "label": "Loading/unloading exemption", "plain": "You were actively loading or unloading." },
     { "id": "SIGNAGE", "label": "Time plate missing or unclear", "plain": "The restriction times were not clearly shown." },
     { "id": "LINES", "label": "Line markings defective", "plain": "The yellow line was faded, broken, or unclear." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The council made a legal or administrative error.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
+    { "id": "PROC", "label": "Procedural error", "plain": "The authority made an administrative error.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
     MITIGATING_ARG
   ],
   "YELLOW_LINE_DOUBLE": [
     { "id": "DNO", "label": "Contravention did not occur", "plain": "You were not parked as alleged." },
     { "id": "LOADING", "label": "Loading/unloading exemption", "plain": "You were loading or unloading where permitted." },
     { "id": "LINES", "label": "Double yellow lines defective", "plain": "The lines were not clearly visible or compliant." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The enforcement process was not followed correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
+    { "id": "PROC", "label": "Procedural error", "plain": "The enforcement process was not followed correctly.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
     MITIGATING_ARG
   ],
   "RED_ROUTE": [
-    { "id": "DNO", "label": "Contravention did not occur", "plain": "You were stopped or parked lawfully." },
+    { "id": "DNO", "label": "Contravention did not occur", "plain": "You were stopped or parked as required." },
     { "id": "SIGNAGE", "label": "Red route signage unclear", "plain": "The red route restrictions were not clearly signed." },
     { "id": "EXEMPT", "label": "Permitted activity", "plain": "You were loading, picking up, or setting down passengers where allowed." },
     { "id": "MARKINGS", "label": "Road markings defective", "plain": "The red lines or bay markings were unclear or incorrect." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "TfL or the authority failed to follow the correct process.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
+    { "id": "PROC", "label": "Procedural error", "plain": "The authority failed to follow the correct process.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
     MITIGATING_ARG
   ],
   "BUS_LANE": [
@@ -69,14 +69,14 @@ const PCN_DEFENCE_LIBRARY: Record<ContraventionCategory, { id: string, label: st
     { "id": "BRIEF", "label": "Brief entry to turn or avoid hazard", "plain": "You entered only briefly for a legitimate reason." },
     { "id": "SIGNAGE", "label": "Inadequate signage", "plain": "The bus lane signs or markings were unclear." },
     { "id": "EVID", "label": "Insufficient camera evidence", "plain": "The footage does not clearly show a contravention." },
-    { "id": "PROC", "label": "Procedural impropriety", "plain": "The authority did not comply with enforcement rules.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
+    { "id": "PROC", "label": "Procedural error", "plain": "The authority did not comply with enforcement rules.", "details": PROCEDURAL_IMPROPRIETY_EXAMPLES },
     MITIGATING_ARG
   ],
   "YELLOW_BOX": [
     { "id": "EXIT_CLEAR", "label": "Exit was clear when entering", "plain": "Your exit was clear when you entered the box junction." },
     { "id": "FORCED", "label": "Stop caused by another vehicle", "plain": "Another vehicle or obstruction caused you to stop in the box." },
-    { "id": "MINIMIS", "label": "Momentary stop (De Minimis)", "plain": "The stop was momentary and insignificant in the traffic flow." },
-    { "id": "MARKINGS", "label": "Markings or signage non-compliant", "plain": "The box markings or regulatory signs were incorrect or unclear." },
+    { "id": "MINIMIS", "label": "Momentary stop", "plain": "The stop was momentary and insignificant in the traffic flow." },
+    { "id": "MARKINGS", "label": "Markings or signage non-compliant", "plain": "The box markings or signs were incorrect or unclear." },
     { "id": "EVID", "label": "Evidence does not show exit blocked at entry", "plain": "The evidence fails to prove the exit was blocked at entry." },
     MITIGATING_ARG
   ],
@@ -113,7 +113,7 @@ const BenefitsList: React.FC = () => (
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
-      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes relevant statutory laws and specific regulations.</p>
+      <p className="text-xs font-bold text-slate-700 leading-tight">Quotes relevant rules and specific regulations.</p>
     </div>
     <div className="flex items-start gap-4">
       <div className="w-5 h-5 rounded flex items-center justify-center bg-amber-100 text-amber-600 mt-0.5"><i className="fas fa-check text-[10px]"></i></div>
@@ -138,7 +138,6 @@ const MainApp: React.FC = () => {
   const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  // Persistence logic: Automatically save case state to localStorage whenever draft data changes
   useEffect(() => {
     if (letterDraft && pcnData) {
       const stateToSave = {
@@ -340,25 +339,27 @@ const MainApp: React.FC = () => {
     switch (state) {
       case 'DISCLAIMER':
         return (
-          <div className="space-y-10 flex flex-col items-center animate-in fade-in duration-700">
-            <div className="text-center mb-12 flex flex-col items-center">
-               <Logo className="h-48 w-auto mb-8" variant="icon" />
-               <h1 className="text-6xl font-black mb-2 uppercase italic leading-[0.85] tracking-tighter text-slate-950">ANSWER BACK.</h1>
-               <h1 className="text-4xl font-black mb-6 uppercase italic leading-[0.85] tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
+          <div className="space-y-6 flex flex-col items-center animate-in fade-in duration-700">
+            <div className="text-center mb-4 flex flex-col items-center">
+               <h1 className="text-[2.2rem] font-black mb-1 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
+               <h1 className="text-[1.4rem] font-black mb-6 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
+               <p className="max-w-md text-slate-500 font-bold text-xs leading-relaxed mb-4 uppercase tracking-wider">
+                 Challenge unfair UK parking charges with advanced procedural analysis. Our tool helps you prepare a professional response based on standard parking rules and guidelines.
+               </p>
             </div>
-            <div className="bg-slate-950 rounded-[3.5rem] p-12 text-white shadow-2xl border-b-[12px] border-amber-500 w-full max-w-2xl">
-                <h3 className="text-xl font-black mb-8 uppercase italic tracking-widest text-amber-400">Analysis Agreement</h3>
-                <div className="space-y-6 mb-10">
-                  <label className="flex items-start gap-5 cursor-pointer">
-                    <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-6 h-6 rounded mt-1 accent-amber-500" />
-                    <span className="text-sm font-bold text-slate-300"> drafting tool, not professional advice.</span>
+            <div className="bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-lg">
+                <h3 className="text-base font-black mb-6 uppercase italic tracking-widest text-amber-400">Analysis Agreement</h3>
+                <div className="space-y-4 mb-8">
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-5 h-5 rounded mt-0.5 accent-amber-500" />
+                    <span className="text-[12px] font-bold text-slate-300">This is an automated drafting tool, not a professional service provider.</span>
                   </label>
-                  <label className="flex items-start gap-5 cursor-pointer">
-                    <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-6 h-6 rounded mt-1 accent-amber-500" />
-                    <span className="text-sm font-bold text-slate-300">Responsible for verifying facts and deadlines.</span>
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-5 h-5 rounded mt-0.5 accent-amber-500" />
+                    <span className="text-[12px] font-bold text-slate-300">You are responsible for verifying all facts and submission deadlines.</span>
                   </label>
                 </div>
-                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('UPLOAD')} className="w-full bg-amber-500 text-slate-950 py-6 rounded-3xl font-black uppercase italic disabled:opacity-20 shadow-2xl text-2xl active:scale-95 transition-all">Proceed</button>
+                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('UPLOAD')} className="w-full bg-amber-500 text-slate-950 py-5 rounded-2xl font-black uppercase italic disabled:opacity-20 shadow-xl text-lg active:scale-95 transition-all">Proceed</button>
             </div>
           </div>
         );
@@ -406,7 +407,7 @@ const MainApp: React.FC = () => {
             setUserAnswers({...userAnswers, driver_identity: val});
             navigateTo('PRIVATE_INTAKE_LOCATION');
           },
-          "You are not legally required to tell a private parking company who the driver was."
+          "You are not required to tell a private company who the driver was."
         );
       case 'PRIVATE_INTAKE_LOCATION':
         return renderChoice('parking_location', "Where were you parked?",
@@ -570,12 +571,12 @@ const MainApp: React.FC = () => {
               <div className="bg-amber-50 p-8 rounded-[2rem] border-2 border-amber-200 text-left">
                 <p className="text-sm font-bold text-amber-900 leading-relaxed">
                   <i className="fas fa-exclamation-triangle mr-2"></i>
-                  It is <span className="underline">crucial</span> that the defence you select is supported by the actual images. 
-                  If this case reaches a Tribunal or Court, conflicting evidence can be detrimental to your claim.
+                  It is <span className="underline">crucial</span> that the points you select are supported by the actual images. 
+                  Conflicting evidence can be detrimental to your case.
                 </p>
               </div>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
-                Images are usually found on the issuer's website using your PCN number and VRM.
+                Images are usually found on the issuer's website using your PCN number and registration.
               </p>
               <button onClick={async () => {
                 setIsLoading(true);
@@ -678,7 +679,7 @@ const MainApp: React.FC = () => {
             <div className="absolute top-8 left-12">{renderBackButton()}</div>
             <div className="pt-8 space-y-10">
               <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Intake Incomplete</h2>
-              <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">this is a more complex case. please contact us to give you more personal help, including referral to a solicitor in some cases.</p>
+              <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">this is a more complex case. please contact us for further help.</p>
               <a href={CONTACT_PAGE} target="_blank" className="text-3xl font-black italic underline block text-amber-600">defens.co.uk/contact</a>
               <button onClick={reset} className="text-slate-400 font-black uppercase underline text-xs pt-8">Start Over</button>
             </div>
@@ -692,7 +693,7 @@ const MainApp: React.FC = () => {
               <i className="fas fa-clock text-amber-500 text-4xl"></i>
             </div>
             <p className="font-black uppercase italic tracking-[0.3em] text-slate-950 text-lg">DEFENS Working...</p>
-            <p className="text-slate-400 font-bold text-[10px] mt-4 uppercase tracking-widest animate-pulse">Compiling Statutory Arguments</p>
+            <p className="text-slate-400 font-bold text-[10px] mt-4 uppercase tracking-widest animate-pulse">Compiling Procedural Rules</p>
           </div>
         );
       case 'DATA_INCOMPLETE':
