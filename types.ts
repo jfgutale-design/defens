@@ -10,16 +10,6 @@ export type ClassifiedStage =
   | 'COURT_CLAIM'
   | 'UNKNOWN';
 
-export type ContraventionCategory = 
-  | 'PARKING_SHARED_BAY' 
-  | 'YELLOW_LINE_SINGLE' 
-  | 'YELLOW_LINE_DOUBLE' 
-  | 'RED_ROUTE' 
-  | 'BUS_LANE' 
-  | 'YELLOW_BOX' 
-  | 'WRONG_TURN_NO_ENTRY'
-  | 'OTHER';
-
 export interface PCNData {
   pcnNumber: string;
   vehicleReg?: string;
@@ -37,12 +27,6 @@ export interface PCNData {
   formalSignalReason?: string;
 }
 
-export interface StrongestClaim {
-  rationale: string;
-  applicableLaws: string[];
-  summary: string;
-}
-
 export interface LetterDraft {
   draftType: DraftType;
   letter: string;
@@ -52,6 +36,24 @@ export interface LetterDraft {
   evidenceChecklist: string[];
   rationale: string;
 }
+
+// Added StrongestClaim interface to resolve import error in geminiservices.ts
+export interface StrongestClaim {
+  title: string;
+  reasoning: string;
+  legalContext: string;
+}
+
+// Added ContraventionCategory type to resolve import error in MainApp.tsx
+export type ContraventionCategory = 
+  | 'PARKING_SHARED_BAY'
+  | 'YELLOW_LINE_SINGLE'
+  | 'YELLOW_LINE_DOUBLE'
+  | 'RED_ROUTE'
+  | 'BUS_LANE'
+  | 'YELLOW_BOX'
+  | 'WRONG_TURN_NO_ENTRY'
+  | 'OTHER';
 
 export type AppState = 
   | 'DISCLAIMER' 
@@ -73,6 +75,7 @@ export type AppState =
   | 'CONTRAVENTION_SELECT'
   | 'DEFENCE_SELECT'
   | 'EXPLANATION_INPUT'
+  | 'IMAGE_EVIDENCE_CONFIRMATION'
   | 'STRATEGY_PROPOSAL'
   | 'COURT_CONFIRMATION'
   | 'PRIVATE_STAGE_CHECK'
