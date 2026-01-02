@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { PCNData, LetterDraft, StrongestClaim } from "./types";
+import { PCNData, LetterDraft } from "./types";
 
 const getAI = () => {
   const apiKey = process.env.API_KEY;
@@ -30,16 +30,18 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
           { inlineData: { data: base64Image, mimeType: mimeType } },
           { text: `Extract UK notice details for DEFENS UK. 
           
-          MANDATORY STAGE CLASSIFICATION:
-          Classify into ONE category:
-          1. COUNCIL_PCN: Local Authority / TfL.
-          2. PRIVATE_PARKING_PCN: Original parking operator, early stage appeal.
-          3. PRIVATE_PARKING_DEBT: Triggered if sender is NOT original operator (e.g. DCBL, DRP, CST Law, Trace, Zenith) OR mentions "debt recovery", "outstanding balance", "final notice", "pre-legal", "letter before claim", "legal action".
-          4. COURT_CLAIM: Triggered if official Form N1 Claim form, County Court Business Centre, or claim number present.
-          
-          STRICT CLASSIFICATION RULES:
-          - If private company contractual charge, distinguish between original charge (early) and collection (debt).
-          - containsHardCourtArtefacts: true ONLY for official Form N1 Claim forms.` }
+          Identify the STAGE of the notice:
+          - COURT_CLAIM: Look for "Claim Form", "County Court Business Centre", "MCOL", "In the [Court Name]", "N1 Form".
+          - DEBT_RECOVERY: Look for "Debt Recovery", "Collection", "Final Notice", "Formal Demand", "Instructed to collect".
+          - STANDARD_PCN: Standard notice to owner or parking charge notice.
+
+          Identify the JURISDICTION:
+          - England_Wales, Scotland, or NI.
+
+          Classify noticeType as:
+          - council_pcn: Local Authority / TfL.
+          - private_parking_charge: Private firm / operator.
+          ` }
         ]
       },
       config: {
@@ -48,9 +50,13 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
           type: Type.OBJECT,
           properties: {
             pcnNumber: { type: Type.STRING, nullable: true },
+            vehicleReg: { type: Type.STRING, nullable: true },
+            dateOfIssue: { type: Type.STRING, nullable: true },
+            location: { type: Type.STRING, nullable: true },
             authorityName: { type: Type.STRING, nullable: true },
+            authorityAddress: { type: Type.STRING, nullable: true },
             noticeType: { type: Type.STRING, enum: ['council_pcn', 'private_parking_charge', 'unknown'] },
-            classifiedStage: { type: Type.STRING, enum: ['COUNCIL_PCN', 'PRIVATE_PARKING_PCN', 'PRIVATE_PARKING_DEBT', 'COURT_CLAIM', 'UNKNOWN'] },
+            classifiedStage: { type: Type.STRING, enum: ['STANDARD_PCN', 'DEBT_RECOVERY', 'COURT_CLAIM', 'UNKNOWN'] },
             jurisdiction: { type: Type.STRING, enum: ['England_Wales', 'Scotland', 'NI', 'Unknown'] },
             containsFormalSignals: { type: Type.BOOLEAN },
             containsHardCourtArtefacts: { type: Type.BOOLEAN },
@@ -62,38 +68,33 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
     });
 
     const parsed = JSON.parse(cleanJson(response.text));
-    return {
-      ...parsed,
-      pcnNumber: parsed.pcnNumber || "NOT_FOUND"
-    } as PCNData;
+    return { ...parsed, pcnNumber: parsed.pcnNumber || "NOT_FOUND" } as PCNData;
   } catch (error: any) {
     throw new Error("SCAN_FAILED");
   }
 };
 
-export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<{ summary: string, rationale: string }> => {
+export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<{ summary: string, overview: string, rationale: string }> => {
   const ai = getAI();
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: [{
       parts: [{ text: `Based on:
       DATA: ${JSON.stringify(pcnData)}
       USER_ANSWERS: ${JSON.stringify(userAnswers)}
       
-      Provide a proposed challenge strategy summary in PLAIN ENGLISH for a UK parking charge response.
+      Provide:
+      1. summary: A short, high-impact headline explaining why we are challenging this.
+      2. overview: A summary of the action plan in 2 lines max. (E.g. If it's a private collection case, explain we are requesting all data before they take it further).
+      3. rationale: Explain why this plan is best delivered using our professional drafting service. Mention it uses specific technical rules for a proper review.
       
-      TASK:
-      1. Write a 2-3 sentence 'rationale' that summarizes the core argument based on the user's selected reasons. 
-      2. If they mention signage, mention the failure to communicate terms. If they mention keeper liability, mention procedural non-compliance.
+      STRICT LANGUAGE CONTROL:
+      - Use ONLY plain, everyday language.
+      - BANNED WORDS: legal, law, appeal, defence, legislation, regulation, statute, comply, evidence, witness, representation, liable, liability.
+      - DO NOT use any legalistic framing.
       
-      STRICT RULES:
-      - BE INTENTIONALLY VAGUE. 
-      - Do NOT use specific legal acronyms (e.g. NO 'POFA', 'TMA', 'IAS').
-      - Do NOT use section numbers or reference specific laws.
-      - Focus on conceptual logic (e.g., 'The charge is invalid because the operator failed to establish a clear contract').
-      - Keep it helpful, firm, and determined.
-      - 'summary' should be a punchy title like "Procedural Challenge" or "Contractual Dispute".` }]
+      Max 120 words total.` }]
     }],
     config: {
       responseMimeType: "application/json",
@@ -101,9 +102,10 @@ export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Recor
         type: Type.OBJECT,
         properties: {
           summary: { type: Type.STRING },
+          overview: { type: Type.STRING },
           rationale: { type: Type.STRING }
         },
-        required: ["summary", "rationale"]
+        required: ["summary", "overview", "rationale"]
       }
     }
   });
@@ -112,45 +114,40 @@ export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Recor
 
 export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<LetterDraft> => {
   const ai = getAI();
-  const isPrivate = userAnswers.doc_type === 'PRIVATE_PARKING';
-  let prompt = "";
+  const isPrivateDebt = pcnData.noticeType === 'private_parking_charge' && pcnData.classifiedStage === 'DEBT_RECOVERY';
+  const model = 'gemini-3-flash-preview';
 
-  if (isPrivate) {
-    if (userAnswers.private_stage === 'APPEAL_STAGE') {
-      prompt = `DRAFT_TYPE: PRIVATE_PARKING_APPEAL_LETTER. 
-      RULES: Appeal to parking company ONLY. NO debt language. NO SAR.
-      REASONS: ${userAnswers.appeal_reasons}. 
-      USER_TEXT: ${userAnswers.appeal_explanation}. 
-      DATA: ${JSON.stringify(pcnData)}.`;
-    } else if (userAnswers.adjudicator_check === 'NO') {
-      prompt = `DRAFT_TYPE: ADJUDICATOR_APPEAL (POPLA/IAS).
-      RULES: Draft adjudicator appeal only. NO SAR.
-      REASONS: ${userAnswers.adjudicator_reasons}.
-      USER_TEXT: ${userAnswers.adjudicator_explanation}.
-      DATA: ${JSON.stringify(pcnData)}.`;
-    } else {
-      prompt = `DRAFT_TYPE: PRIVATE_PRE_ACTION_SAR_PACK.
-      TONE: Polite, professional, and firm (representative of professional correspondence).
-      RULES:
-      1. This is a formal dispute of an alleged debt.
-      2. Use the phrase "unreasonable conduct" instead of "harassment" when referring to further demands during a dispute.
-      3. Include a formal Subject Access Request (SAR).
-      4. PRE-EMPTIVE ID CHECK: Include a statement that since the company has already sent mail to this name and address regarding this vehicle registration, they already possess proof of identity for these purposes. Any request for further ID (passport/utility bills) will be noted as a deliberate attempt to obstruct a SAR.
-      5. Explicitly state the account is in a formal "Debt in Dispute" status and collection must be suspended for 30 days per Pre-Action Protocol.
-      REASONS: ${userAnswers.debt_reasons}.
-      USER_TEXT: ${userAnswers.debt_explanation}.
-      DATA: ${JSON.stringify(pcnData)}.`;
-    }
+  const headerInfo = `
+    HEADER:
+    - Recipient: ${pcnData.authorityName || "As per ticket"}
+    - Address: ${pcnData.authorityAddress || "As per ticket"}
+    - Reference: ${pcnData.pcnNumber}
+    - Vehicle: ${pcnData.vehicleReg || "As per ticket"}
+    - Date: ${pcnData.dateOfIssue || "As per ticket"}
+  `;
+
+  let prompt = "";
+  if (isPrivateDebt) {
+    prompt = `You are drafting a formal PRE-LITIGATION DISCLOSURE and SUBJECT ACCESS REQUEST (SAR) letter for a UK private parking debt case.
+    ${headerInfo}
+    Facts: ${JSON.stringify(userAnswers)}.
+    
+    The letter MUST:
+    1. Demand full pre-litigation disclosure including a copy of the contract, signage maps, and proof of assignment.
+    2. Include a formal Subject Access Request (SAR) under the Data Protection Act 2018.
+    3. State that proceedings should be stayed until this data is provided.
+    
+    MANDATORY: You MAY use formal terms (SAR, pre-litigation disclosure, DPA 2018, POFA 2012) as this is a drafted letter.`;
   } else {
-    // Council flow
-    prompt = `DRAFT_TYPE: COUNCIL_PCN_REPRESENTATION.
-    RULES: Formal representation. Use only selected grounds and procedural rules.
-    ANSWERS: ${JSON.stringify(userAnswers)}.
-    DATA: ${JSON.stringify(pcnData)}.`;
+    prompt = `You are drafting a professional representation letter to a UK parking authority.
+    ${headerInfo}
+    Facts: ${JSON.stringify(userAnswers)}.
+    
+    MANDATORY: In this letter, you MAY use formal terms (legislation, regulations, TMA 2004, POFA 2012) as appropriate for the content. This letter is the ONLY place such terms are allowed.`;
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model,
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseMimeType: "application/json",
@@ -159,7 +156,6 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
         properties: {
           draftType: { type: Type.STRING },
           letter: { type: Type.STRING },
-          sarLetter: { type: Type.STRING, nullable: true },
           verificationStatus: { type: Type.STRING },
           sourceCitations: { type: Type.ARRAY, items: { type: Type.STRING } },
           evidenceChecklist: { type: Type.ARRAY, items: { type: Type.STRING } },
