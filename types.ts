@@ -55,10 +55,12 @@ export type ContraventionCategory =
 
 export type AppState = 
   | 'DISCLAIMER' 
+  | 'GENUINE_REASON_CONFIRM'
   | 'UPLOAD' 
   | 'ANALYZING' 
   | 'DATA_INCOMPLETE'
   | 'INTAKE_DOC_TYPE'
+  | 'INTAKE_STAGE_SELECT'
   | 'INTAKE_JURISDICTION'
   | 'PRIVATE_LOCATION_SELECT'
   | 'CONTRAVENTION_SELECT'
@@ -71,4 +73,5 @@ export type AppState =
   | 'CONVERSION'
   | 'DRAFTING' 
   | 'RED_FLAG_PAUSE'
+  | 'CANNOT_HELP'
   | 'RESULT';

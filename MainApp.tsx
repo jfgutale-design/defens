@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { jsPDF } from 'jspdf';
 import { executePass1Extraction, executePass2And3Drafting, generatePlainStrategy } from './geminiservices';
-import { PCNData, AppState, LetterDraft, ContraventionCategory } from './types';
+import { PCNData, AppState, LetterDraft, ContraventionCategory, ClassifiedStage } from './types';
 
 const STRIPE_PAYMENT_LINK = "https://buy.stripe.com/cNi5kEe820DZ8qQdlPebu0b";
 const CONTACT_PAGE = "https://www.defens.co.uk/contact";
@@ -183,15 +183,8 @@ const MainApp: React.FC = () => {
         const data = await executePass1Extraction(base64, file.type);
         setPcnData(data);
         
-        // HARD-CODED STAGE LOGIC GATES
         if (data.extractionConfidence < 0.4 || data.pcnNumber === 'NOT_FOUND') {
           setState('DATA_INCOMPLETE');
-        } else if (data.classifiedStage === 'COURT_CLAIM') {
-          setRedFlagReason("This notice is at the formal proceedings stage. Please contact our support team or a solicitor immediately.");
-          setState('RED_FLAG_PAUSE');
-        } else if (data.noticeType === 'council_pcn' && data.classifiedStage === 'DEBT_RECOVERY') {
-          setRedFlagReason("This council notice has progressed to the collection firm phase. Please contact us for tailored help.");
-          setState('RED_FLAG_PAUSE');
         } else {
           setHistory(['UPLOAD']);
           setState('INTAKE_DOC_TYPE');
@@ -243,15 +236,25 @@ const MainApp: React.FC = () => {
     </div>
   );
 
+  const getTimingStatus = () => {
+    if (!pcnData?.dateOfIssue) return "Unknown";
+    const issueDate = new Date(pcnData.dateOfIssue);
+    if (isNaN(issueDate.getTime())) return "Unknown";
+    const diffDays = Math.floor((new Date().getTime() - issueDate.getTime()) / (1000 * 3600 * 24));
+    
+    // For PCNs, usually 28 days is the standard window
+    return diffDays <= 28 ? "Within Response Window" : "Late (Discretion Required)";
+  };
+
   const renderContent = () => {
     switch (state) {
       case 'DISCLAIMER':
         return (
           <div className="space-y-6 flex flex-col items-center animate-in fade-in duration-700">
-            <div className="text-center mb-4 flex flex-col items-center">
-               <Logo className="h-16 md:h-20 w-auto mb-6" />
-               <h1 className="text-[1.8rem] md:text-[2.2rem] font-black mb-1 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
-               <h1 className="text-[1.1rem] md:text-[1.4rem] font-black mb-6 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
+            <div className="text-center mb-6 flex flex-col items-center">
+               <Logo className="h-16 md:h-20 w-auto mb-8" />
+               <h1 className="text-[2.4rem] md:text-[3rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
+               <h1 className="text-[1.5rem] md:text-[1.9rem] font-black mb-8 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
             </div>
             <div className="bg-slate-950 rounded-[2rem] p-8 md:p-10 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-lg">
                 <h3 className="text-xs font-black mb-6 uppercase italic tracking-widest text-amber-400">Review Terms</h3>
@@ -265,8 +268,52 @@ const MainApp: React.FC = () => {
                     <span className="text-[10px] md:text-[12px] font-bold text-slate-300">You are responsible for all deadlines.</span>
                   </label>
                 </div>
-                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('UPLOAD')} className="w-full bg-amber-500 text-slate-950 py-4 rounded-xl font-black uppercase italic disabled:opacity-20 shadow-xl text-lg active:scale-95 transition-all">Start Scan</button>
+                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('GENUINE_REASON_CONFIRM')} className="w-full bg-amber-500 text-slate-950 py-4 rounded-xl font-black uppercase italic disabled:opacity-20 shadow-xl text-xl active:scale-95 transition-all">START SCAN</button>
             </div>
+          </div>
+        );
+      case 'GENUINE_REASON_CONFIRM':
+        return (
+          <div className="bg-white p-10 md:p-16 rounded-[3rem] md:rounded-[5rem] shadow-2xl text-center space-y-10 animate-in slide-in-from-bottom duration-500 relative border-t-[10px] border-amber-500 max-w-2xl mx-auto">
+            <div className="absolute top-4 left-6 md:top-8 md:left-12">{renderBackButton()}</div>
+            <div className="pt-4 space-y-8">
+              <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto shadow-inner mb-2">
+                <i className="fas fa-gavel text-3xl"></i>
+              </div>
+              <h2 className="text-xl md:text-3xl font-black uppercase italic tracking-tighter text-slate-950 leading-tight px-4">
+                Do you confirm you have a genuine reason and evidence for challenging this ticket, and are not simply trying to 'get off'?
+              </h2>
+              <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+                 <button onClick={() => navigateTo('UPLOAD')} className="bg-slate-950 text-white py-5 px-6 rounded-[1.5rem] font-black italic hover:bg-slate-800 active:scale-95 transition-all text-sm md:text-base uppercase shadow-xl">
+                   I confirm. I have a valid case.
+                 </button>
+                 <button onClick={() => navigateTo('CANNOT_HELP')} className="bg-slate-50 py-4 px-6 rounded-[1.2rem] border-2 border-slate-200 font-black italic hover:border-red-500 hover:text-red-600 active:scale-95 transition-all text-xs uppercase text-slate-400">
+                   No, I just want to avoid it.
+                 </button>
+              </div>
+            </div>
+          </div>
+        );
+      case 'CANNOT_HELP':
+        return (
+          <div className="bg-white p-16 rounded-[4rem] shadow-2xl text-center space-y-10 border-t-[12px] border-slate-300 animate-in fade-in relative max-w-2xl mx-auto">
+            <div className="w-24 h-24 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <i className="fas fa-hand-paper text-4xl"></i>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-slate-950">Service Restricted</h2>
+              <p className="text-slate-600 font-bold text-lg leading-relaxed">
+                DEFENS UK is a professional tool designed to assist those with genuine procedural or factual grounds for challenging a ticket.
+              </p>
+              <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-100 mt-4">
+                <p className="text-sm font-bold text-slate-500 italic">
+                  We cannot assist with challenges that lack a legitimate basis or evidence.
+                </p>
+              </div>
+            </div>
+            <button onClick={reset} className="w-full bg-slate-950 text-white py-5 rounded-[1.5rem] font-black uppercase italic text-lg shadow-xl active:scale-95 transition-all">
+              Return to Start
+            </button>
           </div>
         );
       case 'UPLOAD':
@@ -285,14 +332,43 @@ const MainApp: React.FC = () => {
         );
       case 'INTAKE_DOC_TYPE':
         return renderChoice('doc_type', "Who issued this notice?", 
-          [{ value: 'YES', label: 'Council / TfL' }, { value: 'NO', label: 'Private Operator' }],
+          [{ value: 'council_pcn', label: 'Council / TfL' }, { value: 'private_parking_charge', label: 'Private Operator' }],
           (val) => {
-            if (val === 'YES') {
-              setUserAnswers({...userAnswers, doc_type: 'LOCAL_AUTHORITY_PCN'});
-              navigateTo('INTAKE_JURISDICTION');
-            } else {
-              setUserAnswers({...userAnswers, doc_type: 'PRIVATE_PARKING'});
+            setUserAnswers({...userAnswers, doc_type: val});
+            setPcnData(prev => prev ? { ...prev, noticeType: val as any } : null);
+            navigateTo('INTAKE_STAGE_SELECT');
+          }
+        );
+      case 'INTAKE_STAGE_SELECT':
+        return renderChoice('stage', "What stage is this ticket at?",
+          [
+            { value: 'STANDARD_PCN', label: 'Appeal Period (Standard Notice)' },
+            { value: 'DEBT_RECOVERY', label: 'Debt Recovery / Final Demand' },
+            { value: 'COURT_CLAIM', label: 'Court Claim Form' }
+          ],
+          (val) => {
+            const docType = userAnswers.doc_type;
+            const stage = val as ClassifiedStage;
+            
+            setPcnData(prev => prev ? { ...prev, classifiedStage: stage } : null);
+
+            // HARD-CODED ROUTING GATES
+            if (stage === 'COURT_CLAIM') {
+              setRedFlagReason("This ticket is at the court stage. You must contact a solicitor immediately for professional advice.");
+              navigateTo('RED_FLAG_PAUSE');
+            } else if (docType === 'council_pcn' && stage === 'DEBT_RECOVERY') {
+              setRedFlagReason("This council ticket is at the debt stage. Please contact us for a referral to a specialist solicitor.");
+              navigateTo('RED_FLAG_PAUSE');
+            } else if (docType === 'private_parking_charge' && stage === 'DEBT_RECOVERY') {
+              // Private debt goes to SAR pack flow
               navigateTo('PRIVATE_LOCATION_SELECT');
+            } else {
+              // Standard appeal period
+              if (docType === 'council_pcn') {
+                navigateTo('INTAKE_JURISDICTION');
+              } else {
+                navigateTo('PRIVATE_LOCATION_SELECT');
+              }
             }
           }
         );
@@ -312,11 +388,8 @@ const MainApp: React.FC = () => {
           ],
           (val) => {
             setUserAnswers({...userAnswers, parking_location: val});
-            if (pcnData?.classifiedStage === 'DEBT_RECOVERY') {
-              navigateTo('EXPLANATION_INPUT'); // Skip contravention select for debt
-            } else {
-              navigateTo('CONTRAVENTION_SELECT');
-            }
+            // PRIVATE TICKETS NEVER SEE CONTRAVENTION_SELECT
+            navigateTo('EXPLANATION_INPUT');
           }
         );
       case 'CONTRAVENTION_SELECT':
@@ -369,7 +442,7 @@ const MainApp: React.FC = () => {
                 try {
                   const strat = await generatePlainStrategy(pcnData!, userAnswers);
                   setPlainStrategy(strat); 
-                  navigateTo('CONSENT_IMAGES'); // MANDATORY GATE 1: IMAGE REVIEW
+                  navigateTo('CONSENT_IMAGES');
                 } catch (err) { navigateTo('UPLOAD'); } finally { setIsLoading(false); }
               }} className="w-full bg-slate-950 text-white py-5 rounded-[1.5rem] font-black uppercase italic text-lg active:scale-95 transition-all">Analyse Facts</button>
             </div>
@@ -399,6 +472,17 @@ const MainApp: React.FC = () => {
                 <h2 className="text-sm md:text-base font-black uppercase italic tracking-tighter text-slate-950 mt-1">{plainStrategy?.summary}</h2>
               </div>
               
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-slate-900 text-white p-4 rounded-2xl text-center">
+                    <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-1">Detected Stage</p>
+                    <p className="text-[10px] font-black italic uppercase text-amber-500">{pcnData?.classifiedStage?.replace(/_/g, ' ')}</p>
+                 </div>
+                 <div className="bg-slate-900 text-white p-4 rounded-2xl text-center">
+                    <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-1">Timing Check</p>
+                    <p className="text-[10px] font-black italic uppercase text-amber-500">{getTimingStatus()}</p>
+                 </div>
+              </div>
+
               <div className="space-y-6">
                 <div className="bg-slate-50 p-6 rounded-[1.5rem] border-2 border-slate-100">
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Strategy Overview</h3>
@@ -500,7 +584,7 @@ const MainApp: React.FC = () => {
       case 'RED_FLAG_PAUSE':
         return (
           <div className="bg-white p-16 rounded-[4rem] shadow-2xl text-center space-y-10 border-t-[12px] border-red-500 animate-in fade-in relative">
-            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Expert Required</h2>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter text-slate-950">Action Required</h2>
             <p className="text-slate-700 font-bold text-lg max-w-md mx-auto">{redFlagReason || "This case involves complex details. Please contact our support team."}</p>
             <a href={CONTACT_PAGE} target="_blank" className="text-3xl font-black italic underline block text-amber-600">defens.co.uk/contact</a>
             <button onClick={reset} className="text-slate-400 font-black uppercase underline text-[10px] pt-4">Start Over</button>

@@ -134,8 +134,9 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
     
     The letter MUST:
     1. Demand full pre-litigation disclosure including a copy of the contract, signage maps, and proof of assignment.
-    2. Include a formal Subject Access Request (SAR) under the Data Protection Act 2018.
-    3. State that proceedings should be stayed until this data is provided.
+    2. Include a formal Subject Access Request (SAR) under the Data Protection Act 2018 / UK GDPR.
+    3. MANDATORY STATEMENT: Include a clear statement informing the operator that they should not request further identification documents, as the user's identity is already reasonably clear from the ongoing correspondence regarding this specific notice and vehicle.
+    4. State that proceedings should be stayed until this data is provided.
     
     MANDATORY: You MAY use formal terms (SAR, pre-litigation disclosure, DPA 2018, POFA 2012) as this is a drafted letter.`;
   } else {
