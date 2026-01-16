@@ -71,6 +71,7 @@ export type AppState =
   | 'CONSENT_STRATEGY'
   | 'STRATEGY_PROPOSAL'
   | 'CONVERSION'
+  | 'USER_DETAILS_INPUT'
   | 'DRAFTING' 
   | 'RED_FLAG_PAUSE'
   | 'CANNOT_HELP'

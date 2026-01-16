@@ -18,6 +18,14 @@ const cleanJson = (text: string | undefined): string => {
   return cleaned;
 };
 
+export interface StrategyResponse {
+  summary: string;
+  overview: string;
+  rationale: string;
+  legalBasis: string;
+  sources: { title: string; uri: string }[];
+}
+
 export const executePass1Extraction = async (base64Image: string, mimeType: string): Promise<PCNData> => {
   try {
     const ai = getAI();
@@ -30,18 +38,14 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
           { inlineData: { data: base64Image, mimeType: mimeType } },
           { text: `Extract UK notice details for DEFENS UK. 
           
-          Identify the STAGE of the notice:
-          - COURT_CLAIM: Look for "Claim Form", "County Court Business Centre", "MCOL", "In the [Court Name]", "N1 Form".
-          - DEBT_RECOVERY: Look for "Debt Recovery", "Collection", "Final Notice", "Formal Demand", "Instructed to collect".
-          - STANDARD_PCN: Standard notice to owner or parking charge notice.
+          Identify the STAGE:
+          - COURT_CLAIM: "Claim Form", "CCBC", "MCOL", "N1".
+          - DEBT_RECOVERY: "Debt Recovery", "Final Notice", "Instructed to collect".
+          - STANDARD_PCN: Standard notice.
 
-          Identify the JURISDICTION:
-          - England_Wales, Scotland, or NI.
-
-          Classify noticeType as:
+          Classify noticeType:
           - council_pcn: Local Authority / TfL.
-          - private_parking_charge: Private firm / operator.
-          ` }
+          - private_parking_charge: Private operator.` }
         ]
       },
       config: {
@@ -74,42 +78,73 @@ export const executePass1Extraction = async (base64Image: string, mimeType: stri
   }
 };
 
-export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<{ summary: string, overview: string, rationale: string }> => {
+export const generatePlainStrategy = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<StrategyResponse> => {
   const ai = getAI();
+  const isPrivateDebt = pcnData.noticeType === 'private_parking_charge' && pcnData.classifiedStage === 'DEBT_RECOVERY';
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: [{
-      parts: [{ text: `Based on:
+      parts: [{ text: `You are DEFENS UK. You must provide a strategy overview based ONLY on:
+      1. legislation.gov.uk (Acts & Regulations)
+      2. gov.uk (DfT Statutory Guidance)
+
       DATA: ${JSON.stringify(pcnData)}
       USER_ANSWERS: ${JSON.stringify(userAnswers)}
-      
-      Provide:
-      1. summary: A short, high-impact headline explaining why we are challenging this.
-      2. overview: A summary of the action plan in 2 lines max. (E.g. If it's a private collection case, explain we are requesting all data before they take it further).
-      3. rationale: Explain why this plan is best delivered using our professional drafting service. Mention it uses specific technical rules for a proper review.
-      
+
+      MANDATORY:
+      - Do NOT recycle the user's narrative.
+      - Lead with the 'failure of duty' or 'requirement of the rules'.
+      - Identify the specific Act or Code (e.g., 'The 2004 Rules for Parking' or 'The 2012 Code for Private Land').
+      - Explain exactly what the rules state and how the issuer failed this duty.
+
+      ${isPrivateDebt ? `CRITICAL: PRIVATE DEBT case. 
+      Summary: "Pre-Litigation Disclosure & SAR Pack Strategy".
+      Overview must explain that the SAR tactic forces disclosure under Data Protection rules to check if the 2012 Protection of Freedoms requirements were met.` : ""}
+
       STRICT LANGUAGE CONTROL:
-      - Use ONLY plain, everyday language.
-      - BANNED WORDS: legal, law, appeal, defence, legislation, regulation, statute, comply, evidence, witness, representation, liable, liability.
-      - DO NOT use any legalistic framing.
-      
-      Max 120 words total.` }]
+      - Use ONLY plain language outside letters.
+      - BANNED: legal, law, appeal, defence, legislation, regulation, statute, comply, evidence, witness, representation, liable, liability.
+      ` }]
     }],
     config: {
+      tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
         properties: {
           summary: { type: Type.STRING },
           overview: { type: Type.STRING },
+          legalBasis: { type: Type.STRING, description: "The specific 'law says' part, e.g. 'The 2004 Rules require...'" },
           rationale: { type: Type.STRING }
         },
-        required: ["summary", "overview", "rationale"]
+        required: ["summary", "overview", "legalBasis", "rationale"]
       }
     }
   });
-  return JSON.parse(cleanJson(response.text));
+
+  const parsed = JSON.parse(cleanJson(response.text));
+  const sources: { title: string; uri: string }[] = [];
+  
+  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (chunks) {
+    chunks.forEach((chunk: any) => {
+      if (chunk.web?.uri && (chunk.web.uri.includes('legislation.gov.uk') || chunk.web.uri.includes('gov.uk'))) {
+        sources.push({ title: chunk.web.title || chunk.web.uri, uri: chunk.web.uri });
+      }
+    });
+  }
+
+  // Fallback if grounding didn't grab the specific whitelist
+  if (sources.length === 0) {
+    if (pcnData.noticeType === 'council_pcn') {
+      sources.push({ title: "Traffic Management Act 2004", uri: "https://www.legislation.gov.uk/ukpga/2004/18/contents" });
+    } else {
+      sources.push({ title: "Protection of Freedoms Act 2012 (Sch 4)", uri: "https://www.legislation.gov.uk/ukpga/2012/9/schedule/4" });
+    }
+  }
+
+  return { ...parsed, sources };
 };
 
 export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Record<string, string>): Promise<LetterDraft> => {
@@ -118,34 +153,21 @@ export const executePass2And3Drafting = async (pcnData: PCNData, userAnswers: Re
   const model = 'gemini-3-flash-preview';
 
   const headerInfo = `
-    HEADER:
-    - Recipient: ${pcnData.authorityName || "As per ticket"}
-    - Address: ${pcnData.authorityAddress || "As per ticket"}
-    - Reference: ${pcnData.pcnNumber}
-    - Vehicle: ${pcnData.vehicleReg || "As per ticket"}
-    - Date: ${pcnData.dateOfIssue || "As per ticket"}
+    LETTER HEADER:
+    ${userAnswers.fullName || "[Your Name]"}
+    ${userAnswers.fullAddress || "[Your Address]"}
+
+    ${userAnswers.authorityName || pcnData.authorityName || "[Parking Firm Name]"}
+    ${userAnswers.authorityAddress || pcnData.authorityAddress || "[Firm Address]"}
+
+    Date: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+    Reference: ${userAnswers.pcnNumber || pcnData.pcnNumber}
+    Vehicle: ${userAnswers.vehicleReg || pcnData.vehicleReg || "[Registration Number]"}
   `;
 
-  let prompt = "";
-  if (isPrivateDebt) {
-    prompt = `You are drafting a formal PRE-LITIGATION DISCLOSURE and SUBJECT ACCESS REQUEST (SAR) letter for a UK private parking debt case.
-    ${headerInfo}
-    Facts: ${JSON.stringify(userAnswers)}.
-    
-    The letter MUST:
-    1. Demand full pre-litigation disclosure including a copy of the contract, signage maps, and proof of assignment.
-    2. Include a formal Subject Access Request (SAR) under the Data Protection Act 2018 / UK GDPR.
-    3. MANDATORY STATEMENT: Include a clear statement informing the operator that they should not request further identification documents, as the user's identity is already reasonably clear from the ongoing correspondence regarding this specific notice and vehicle.
-    4. State that proceedings should be stayed until this data is provided.
-    
-    MANDATORY: You MAY use formal terms (SAR, pre-litigation disclosure, DPA 2018, POFA 2012) as this is a drafted letter.`;
-  } else {
-    prompt = `You are drafting a professional representation letter to a UK parking authority.
-    ${headerInfo}
-    Facts: ${JSON.stringify(userAnswers)}.
-    
-    MANDATORY: In this letter, you MAY use formal terms (legislation, regulations, TMA 2004, POFA 2012) as appropriate for the content. This letter is the ONLY place such terms are allowed.`;
-  }
+  let prompt = isPrivateDebt 
+    ? `Draft a formal PRE-LITIGATION DISCLOSURE and SAR letter. ${headerInfo}. Cite DPA 2018 and POFA 2012.`
+    : `Draft a professional representation letter. ${headerInfo}. Facts: ${JSON.stringify(userAnswers)}. Cite TMA 2004 or POFA 2012.`;
 
   const response = await ai.models.generateContent({
     model,
