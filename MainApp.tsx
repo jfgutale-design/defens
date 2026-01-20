@@ -21,6 +21,106 @@ const Logo: React.FC<{ className?: string, variant?: 'full' | 'icon' }> = ({ cla
   );
 };
 
+interface ContraventionGroup {
+  title: string;
+  description: string;
+  options: string[];
+}
+
+const COUNCIL_CONTRAVENTIONS: ContraventionGroup[] = [
+  {
+    title: "1. Parking in the Wrong Bay",
+    description: "You parked in a bay you weren’t entitled to use.",
+    options: [
+      "Resident / permit holder bay", "Shared use bay", "Paid-for parking bay (expired ticket / no payment)",
+      "Business / doctor / diplomat bay", "Car club bay", "Electric vehicle bay (not charging / overstayed)",
+      "Disabled bay (no Blue Badge / misuse)", "Loading bay", "Taxi rank", "Suspended bay"
+    ]
+  },
+  {
+    title: "2. Parking on Yellow Lines",
+    description: "You parked where waiting or loading was restricted.",
+    options: [
+      "Single yellow line", "Double yellow line", "Waiting beyond permitted hours",
+      "Loading during restricted hours", "Kerbside loading ban (kerb blips)"
+    ]
+  },
+  {
+    title: "3. Parking on the Pavement or Causing an Obstruction",
+    description: "You blocked the pavement, access, or a safety area.",
+    options: [
+      "Footway / pavement parking", "Obstructive parking", "Parking next to a dropped kerb",
+      "Parking on zig-zags (school or pedestrian crossing)"
+    ]
+  },
+  {
+    title: "4. Stopping or Parking on a Red Route (TfL)",
+    description: "Red routes have stricter “no stopping” rules.",
+    options: [
+      "Stopping on a red route", "Loading on a red route", "Parking on a red route", "Stopping on a red route clearway"
+    ]
+  },
+  {
+    title: "5. Parking in a Restricted Place",
+    description: "You parked somewhere that was clearly restricted.",
+    options: [
+      "School keep clear (parking)", "Parking in a pedestrian zone (stationary)",
+      "Parking where prohibited by signs or traffic order", "Parking outside marked bay",
+      "Parking longer than the maximum stay allowed"
+    ]
+  },
+  {
+    title: "6. Driving in a Bus-Only Area",
+    description: "You drove where only buses (and sometimes taxis/cycles) are allowed.",
+    options: [
+      "Driving in a bus lane", "Driving through a bus gate"
+    ]
+  },
+  {
+    title: "7. Driving Where You’re Not Allowed",
+    description: "You entered or used a road vehicles aren’t allowed to use.",
+    options: [
+      "No entry", "One-way street (wrong direction)", "Restricted access road",
+      "Permit-only access street", "Low-Traffic Neighbourhood (LTN) filter breach"
+    ]
+  },
+  {
+    title: "8. Making a Prohibited Turn or Manoeuvre",
+    description: "You made a turn or movement that wasn’t allowed.",
+    options: [
+      "No left turn", "No right turn", "No U-turn", "Failing to follow directional arrows"
+    ]
+  },
+  {
+    title: "9. Ignoring Road Signs or Markings",
+    description: "You didn’t follow a sign or marking with legal effect.",
+    options: [
+      "Failing to comply with a traffic sign", "Ignoring blue mandatory direction signs", "Ignoring give-way or priority markings"
+    ]
+  },
+  {
+    title: "10. Stopping in a Yellow Box Junction",
+    description: "You entered the box without a clear exit.",
+    options: [
+      "Entering and stopping in a box junction"
+    ]
+  },
+  {
+    title: "11. Driving There at the Wrong Time",
+    description: "The road was only restricted at certain times.",
+    options: [
+      "School street restriction", "Pedestrian zone (during restricted hours)"
+    ]
+  },
+  {
+    title: "12. Other / Not Sure",
+    description: "Use this if the PCN doesn’t clearly fit any option.",
+    options: [
+      "Other parking contravention", "Other moving traffic contravention", "Not sure / unclear from the PCN"
+    ]
+  }
+];
+
 const MainApp: React.FC = () => {
   const [state, setState] = useState<AppState>('DISCLAIMER');
   const [history, setHistory] = useState<AppState[]>([]);
@@ -33,6 +133,7 @@ const MainApp: React.FC = () => {
   const [disclaimerCheckboxes, setDisclaimerCheckboxes] = useState({ advice: false, responsibility: false });
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [redFlagReason, setRedFlagReason] = useState<string>("");
+  const [selectedGroupIndex, setSelectedGroupIndex] = useState<number | null>(null);
 
   const navigateTo = useCallback((newState: AppState) => {
     setHistory(prev => [...prev, state]);
@@ -127,14 +228,24 @@ const MainApp: React.FC = () => {
     setUserAnswers({});
     setDisclaimerCheckboxes({ advice: false, responsibility: false });
     setRedFlagReason("");
+    setSelectedGroupIndex(null);
   };
 
   if (!isInitialized) return null;
 
   const renderBackButton = () => {
     if (history.length === 0 || state === 'ANALYZING' || state === 'DRAFTING' || state === 'RESULT') return null;
+    
+    const handleBack = () => {
+      if (state === 'CONTRAVENTION_SELECT' && selectedGroupIndex !== null) {
+        setSelectedGroupIndex(null);
+      } else {
+        goBack();
+      }
+    };
+
     return (
-      <button onClick={goBack} className="flex items-center gap-2 text-slate-400 hover:text-slate-950 font-black uppercase italic text-[10px] tracking-widest transition-colors mb-2 group">
+      <button onClick={handleBack} className="flex items-center gap-2 text-slate-400 hover:text-slate-950 font-black uppercase italic text-[10px] tracking-widest transition-colors mb-2 group">
         <i className="fas fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Go Back
       </button>
     );
@@ -148,23 +259,23 @@ const MainApp: React.FC = () => {
         return (
           <div className="space-y-6 flex flex-col items-center animate-in fade-in duration-700">
             <div className="text-center mb-6 flex flex-col items-center">
-               <Logo className="h-16 md:h-20 w-auto mb-8" />
-               <h1 className="text-[2.4rem] md:text-[3rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
-               <h1 className="text-[1.5rem] md:text-[1.9rem] font-black mb-8 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
+               <Logo className="h-16 md:h-24 w-auto mb-12" />
+               <h1 className="text-[3.6rem] md:text-[4.5rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
+               <h1 className="text-[2.25rem] md:text-[2.85rem] font-black mb-12 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
             </div>
-            <div className="bg-slate-950 rounded-[2rem] p-8 md:p-10 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-lg">
-                <h3 className="text-xs font-black mb-6 uppercase italic tracking-widest text-amber-400">Review Terms</h3>
-                <div className="space-y-4 mb-8">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-4 h-4 rounded mt-0.5 accent-amber-500" />
-                    <span className="text-[10px] md:text-[12px] font-bold text-slate-300">Automated document tool, not professional advice.</span>
+            <div className="bg-slate-950 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-xl">
+                <h3 className="text-lg font-black mb-8 uppercase italic tracking-widest text-amber-400">Review Terms</h3>
+                <div className="space-y-6 mb-12">
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <input type="checkbox" checked={disclaimerCheckboxes.advice} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, advice: e.target.checked})} className="w-5 h-5 rounded mt-1 accent-amber-500" />
+                    <span className="text-[15px] md:text-[18px] font-bold text-slate-300 leading-tight">Automated document tool, not professional advice.</span>
                   </label>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-4 h-4 rounded mt-0.5 accent-amber-500" />
-                    <span className="text-[10px] md:text-[12px] font-bold text-slate-300">You are responsible for all deadlines.</span>
+                  <label className="flex items-start gap-4 cursor-pointer">
+                    <input type="checkbox" checked={disclaimerCheckboxes.responsibility} onChange={e => setDisclaimerCheckboxes({...disclaimerCheckboxes, responsibility: e.target.checked})} className="w-5 h-5 rounded mt-1 accent-amber-500" />
+                    <span className="text-[15px] md:text-[18px] font-bold text-slate-300 leading-tight">You are responsible for all deadlines.</span>
                   </label>
                 </div>
-                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('GENUINE_REASON_CONFIRM')} className="w-full bg-amber-500 text-slate-950 py-4 rounded-xl font-black uppercase italic disabled:opacity-20 shadow-xl text-xl active:scale-95 transition-all">START SCAN</button>
+                <button disabled={!disclaimerCheckboxes.advice || !disclaimerCheckboxes.responsibility} onClick={() => navigateTo('GENUINE_REASON_CONFIRM')} className="w-full bg-amber-500 text-slate-950 py-6 rounded-2xl font-black uppercase italic disabled:opacity-20 shadow-xl text-[1.875rem] active:scale-95 transition-all">START SCAN</button>
             </div>
           </div>
         );
@@ -218,8 +329,74 @@ const MainApp: React.FC = () => {
             <div className="absolute top-4 left-6 md:top-8 md:left-12">{renderBackButton()}</div>
             <h2 className="text-2xl font-black uppercase italic text-slate-950 pt-8">What stage is this at?</h2>
             <div className="grid grid-cols-1 gap-3">
-              <button onClick={() => { setPcnData(prev => prev ? {...prev, classifiedStage: 'STANDARD_PCN'} : null); navigateTo('EXPLANATION_INPUT'); }} className="bg-slate-50 py-5 rounded-[1.2rem] border-2 font-black italic uppercase">Standard Notice</button>
-              <button onClick={() => { setPcnData(prev => prev ? {...prev, classifiedStage: 'DEBT_RECOVERY'} : null); navigateTo('EXPLANATION_INPUT'); }} className="bg-slate-50 py-5 rounded-[1.2rem] border-2 font-black italic uppercase">Debt Recovery</button>
+              <button onClick={() => { setPcnData(prev => prev ? {...prev, classifiedStage: 'STANDARD_PCN'} : null); navigateTo('CONTRAVENTION_SELECT'); }} className="bg-slate-50 py-5 rounded-[1.2rem] border-2 font-black italic uppercase">Appeal Stage</button>
+              <button onClick={() => { setPcnData(prev => prev ? {...prev, classifiedStage: 'DEBT_RECOVERY'} : null); navigateTo('CONTRAVENTION_SELECT'); }} className="bg-slate-50 py-5 rounded-[1.2rem] border-2 font-black italic uppercase">Debt Recovery</button>
+            </div>
+          </div>
+        );
+      case 'CONTRAVENTION_SELECT':
+        const isCouncil = pcnData?.noticeType === 'council_pcn';
+        const currentGroup = selectedGroupIndex !== null ? COUNCIL_CONTRAVENTIONS[selectedGroupIndex] : null;
+
+        return (
+          <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl relative max-w-4xl mx-auto overflow-y-auto max-h-[85vh]">
+            <div className="sticky top-0 bg-white pb-6 z-10">
+              <div className="absolute top-0 left-0">{renderBackButton()}</div>
+              <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-950 pt-10 text-center tracking-tighter">
+                {currentGroup ? currentGroup.title.split('. ')[1] : "Type of Contravention"}
+              </h2>
+              <p className="text-center text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">
+                {currentGroup ? "Select the specific detail" : "Select the category listed on your notice"}
+              </p>
+            </div>
+            
+            <div className="space-y-6 pb-10">
+              {isCouncil ? (
+                selectedGroupIndex === null ? (
+                  // Step 1: Show Categories
+                  <div className="grid grid-cols-1 gap-4 animate-in fade-in duration-500">
+                    {COUNCIL_CONTRAVENTIONS.map((group, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setSelectedGroupIndex(idx)}
+                        className="bg-slate-50 py-6 px-8 rounded-[1.8rem] border-2 border-slate-100 font-black text-left text-sm md:text-base text-slate-800 hover:border-amber-500 hover:bg-white transition-all shadow-md active:scale-[0.98] leading-tight flex items-center justify-between group"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="uppercase italic">{group.title}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{group.description}</span>
+                        </div>
+                        <i className="fas fa-chevron-right text-sm text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all"></i>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // Step 2: Show Options for Selected Category
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-in slide-in-from-right duration-400">
+                    {currentGroup?.options.map((opt, optIdx) => (
+                      <button 
+                        key={optIdx}
+                        onClick={() => { setUserAnswers({...userAnswers, contravention_category: opt}); navigateTo('EXPLANATION_INPUT'); }} 
+                        className="bg-slate-950 py-5 px-6 rounded-[1.5rem] border-2 border-slate-900 font-bold text-left text-xs md:text-sm text-white hover:bg-slate-800 transition-all shadow-xl active:scale-95 leading-tight flex items-center justify-between group"
+                      >
+                        <span>{opt}</span>
+                        <i className="fas fa-arrow-right text-[10px] text-amber-500 group-hover:translate-x-1 transition-all"></i>
+                      </button>
+                    ))}
+                  </div>
+                )
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {["Overstaying free period", "No valid ticket/permit", "Parking outside of bay", "Unauthorized parking on private land", "Failure to display permit", "Not sure"].map((opt, i) => (
+                    <button 
+                      key={i}
+                      onClick={() => { setUserAnswers({...userAnswers, contravention_category: opt}); navigateTo('EXPLANATION_INPUT'); }} 
+                      className="bg-slate-50 py-6 px-6 rounded-[1.5rem] border-2 font-black italic uppercase text-sm text-slate-700 hover:border-amber-500 transition-all shadow-md"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );

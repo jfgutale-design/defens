@@ -43,15 +43,7 @@ export interface StrongestClaim {
   legalContext: string;
 }
 
-export type ContraventionCategory = 
-  | 'PARKING_SHARED_BAY'
-  | 'YELLOW_LINE_SINGLE'
-  | 'YELLOW_LINE_DOUBLE'
-  | 'RED_ROUTE'
-  | 'BUS_LANE'
-  | 'YELLOW_BOX'
-  | 'WRONG_TURN_NO_ENTRY'
-  | 'OTHER';
+export type ContraventionCategory = string;
 
 export type AppState = 
   | 'DISCLAIMER' 
