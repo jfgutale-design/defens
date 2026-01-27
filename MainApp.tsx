@@ -260,8 +260,8 @@ const MainApp: React.FC = () => {
           <div className="space-y-6 flex flex-col items-center animate-in fade-in duration-700">
             <div className="text-center mb-6 flex flex-col items-center">
                <Logo className="h-16 md:h-24 w-auto mb-12" />
-               <h1 className="text-[3.6rem] md:text-[4.5rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">ANSWER BACK.</h1>
-               <h1 className="text-[2.25rem] md:text-[2.85rem] font-black mb-12 uppercase italic leading-none tracking-tighter text-amber-600">PROTECT WHAT'S YOURS.</h1>
+               <h1 className="text-[3.6rem] md:text-[4.5rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">THAT TICKET ENDS HERE.</h1>
+               <h2 className="text-[1.8rem] md:text-[2.2rem] font-black mb-12 uppercase italic leading-tight tracking-tighter text-amber-600 max-w-2xl px-4">UK's only professional drafting app to challenge parking and PCN tickets</h2>
             </div>
             <div className="bg-slate-950 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-xl">
                 <h3 className="text-lg font-black mb-8 uppercase italic tracking-widest text-amber-400">Review Terms</h3>
@@ -342,10 +342,10 @@ const MainApp: React.FC = () => {
           <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl relative max-w-4xl mx-auto overflow-y-auto max-h-[85vh]">
             <div className="sticky top-0 bg-white pb-6 z-10">
               <div className="absolute top-0 left-0">{renderBackButton()}</div>
-              <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-950 pt-10 text-center tracking-tighter">
+              <h2 className="text-3xl md:text-4xl font-black uppercase italic text-slate-950 pt-10 text-center tracking-tighter leading-none">
                 {currentGroup ? currentGroup.title.split('. ')[1] : "Type of Contravention"}
               </h2>
-              <p className="text-center text-slate-500 font-bold text-xs uppercase tracking-widest mt-2">
+              <p className="text-center text-slate-500 font-bold text-sm uppercase tracking-widest mt-3">
                 {currentGroup ? "Select the specific detail" : "Select the category listed on your notice"}
               </p>
             </div>
@@ -359,13 +359,13 @@ const MainApp: React.FC = () => {
                       <button 
                         key={idx}
                         onClick={() => setSelectedGroupIndex(idx)}
-                        className="bg-slate-50 py-6 px-8 rounded-[1.8rem] border-2 border-slate-100 font-black text-left text-sm md:text-base text-slate-800 hover:border-amber-500 hover:bg-white transition-all shadow-md active:scale-[0.98] leading-tight flex items-center justify-between group"
+                        className="bg-slate-50 py-7 px-8 rounded-[2rem] border-2 border-slate-100 font-black text-left text-lg md:text-xl text-slate-800 hover:border-amber-500 hover:bg-white transition-all shadow-md active:scale-[0.98] leading-tight flex items-center justify-between group"
                       >
                         <div className="flex flex-col gap-1">
                           <span className="uppercase italic">{group.title}</span>
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{group.description}</span>
+                          <span className="text-xs text-slate-400 font-bold uppercase tracking-tight">{group.description}</span>
                         </div>
-                        <i className="fas fa-chevron-right text-sm text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all"></i>
+                        <i className="fas fa-chevron-right text-base text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all"></i>
                       </button>
                     ))}
                   </div>
@@ -376,10 +376,10 @@ const MainApp: React.FC = () => {
                       <button 
                         key={optIdx}
                         onClick={() => { setUserAnswers({...userAnswers, contravention_category: opt}); navigateTo('EXPLANATION_INPUT'); }} 
-                        className="bg-slate-950 py-5 px-6 rounded-[1.5rem] border-2 border-slate-900 font-bold text-left text-xs md:text-sm text-white hover:bg-slate-800 transition-all shadow-xl active:scale-95 leading-tight flex items-center justify-between group"
+                        className="bg-slate-950 py-6 px-7 rounded-[1.8rem] border-2 border-slate-900 font-bold text-left text-base md:text-lg text-white hover:bg-slate-800 transition-all shadow-xl active:scale-95 leading-tight flex items-center justify-between group"
                       >
                         <span>{opt}</span>
-                        <i className="fas fa-arrow-right text-[10px] text-amber-500 group-hover:translate-x-1 transition-all"></i>
+                        <i className="fas fa-arrow-right text-xs text-amber-500 group-hover:translate-x-1 transition-all"></i>
                       </button>
                     ))}
                   </div>
@@ -390,7 +390,7 @@ const MainApp: React.FC = () => {
                     <button 
                       key={i}
                       onClick={() => { setUserAnswers({...userAnswers, contravention_category: opt}); navigateTo('EXPLANATION_INPUT'); }} 
-                      className="bg-slate-50 py-6 px-6 rounded-[1.5rem] border-2 font-black italic uppercase text-sm text-slate-700 hover:border-amber-500 transition-all shadow-md"
+                      className="bg-slate-50 py-7 px-8 rounded-[2rem] border-2 font-black italic uppercase text-lg text-slate-700 hover:border-amber-500 transition-all shadow-md"
                     >
                       {opt}
                     </button>
