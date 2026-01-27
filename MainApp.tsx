@@ -260,8 +260,8 @@ const MainApp: React.FC = () => {
           <div className="space-y-6 flex flex-col items-center animate-in fade-in duration-700">
             <div className="text-center mb-6 flex flex-col items-center">
                <Logo className="h-16 md:h-24 w-auto mb-12" />
-               <h1 className="text-[3.6rem] md:text-[4.5rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">THAT TICKET ENDS HERE.</h1>
-               <h2 className="text-[1.8rem] md:text-[2.2rem] font-black mb-12 uppercase italic leading-tight tracking-tighter text-amber-600 max-w-2xl px-4">UK's only professional drafting app to challenge parking and PCN tickets</h2>
+               <h1 className="text-[1.8rem] md:text-[2.25rem] font-black mb-2 uppercase italic leading-none tracking-tighter text-slate-950">THAT TICKET ENDS HERE.</h1>
+               <h2 className="text-[0.9rem] md:text-[1.1rem] font-black mb-12 uppercase italic leading-tight tracking-tighter text-amber-600 max-w-2xl px-4">UK's only professional drafting app to challenge parking and PCN tickets</h2>
             </div>
             <div className="bg-slate-950 rounded-[2rem] p-8 md:p-12 text-white shadow-2xl border-b-[8px] border-amber-500 w-full max-w-xl">
                 <h3 className="text-lg font-black mb-8 uppercase italic tracking-widest text-amber-400">Review Terms</h3>
